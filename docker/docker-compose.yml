@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+  php:
+    build:
+      context: ../
+      dockerfile: ./docker/php-fpm/Dockerfile
+    volumes: 
+      - ../src:/var/www/:cached 
+    working_dir: /var/www/
+    depends_on:
+      - mysql
+  nginx:
+    build:
+      context: ../
+      dockerfile: ./docker/nginx/Dockerfile
+    container_name: nginx
+    ports: 
+      - 80:80
+    depends_on:
+      - php
+  mysql:
+    image: mysql:5.7
+    container_name: mysql
+    volumes:
+      - ./mysql/my.cnf:/etc/mysql/my.cnf:cached
+      - ./mysql/mysql_data:/var/lib/mysql:cached
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+    - 3306:3306

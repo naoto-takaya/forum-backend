@@ -8,11 +8,12 @@ jobs:
     docker:
       # Specify the version you desire here
       - image: circleci/php:7.3-fpm
-        enviroment:
-          APP_ENV: testing
-          DB_CONNECTION: circleci
       - image: circleci/mysql:5.7
-
+    environment:
+        - APP_DEBUG: true
+        - APP_ENV: testing
+        - APP_KEY: base64:CxIPfh57UZxLKUojcbA1qc8hHWgR4WCsrdsNG8ibwHE=
+        - DB_CONNECTION: circleci
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
       # documented at https://circleci.com/docs/2.0/circleci-images/
@@ -23,9 +24,6 @@ jobs:
       # - image: redis:2.8.19
     steps:
       - checkout
-      #- run:
-      #    name: Decode dotenv file
-      #    command: echo $ENV_FILE | base64 --decode > ./.env
 
       - run: sudo docker-php-ext-install pdo_mysql
 
@@ -47,7 +45,7 @@ jobs:
             - ./src/vendor
 
       - run: 
-          command: php artisan migrate  --force
+          command: php artisan migrate  --database=circleci --force
           working_directory: ./src
 
       # run tests with phpunit or codecept

@@ -1,0 +1,57 @@
+# PHP CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-php/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      # Specify the version you desire here
+      - image: circleci/php:7.3-fpm
+        enviroment:
+          APP_ENV: testing
+          DB_CONNECTION: circleci
+      - image: circleci/mysql:5.7
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # Using the RAM variation mitigates I/O contention
+      # for database intensive operations.<env name="DB_CONNECTION" value="sqlite_testing"/>
+      # - image: circleci/mysql:5.7-ram
+      #
+      # - image: redis:2.8.19
+    steps:
+      - checkout
+      #- run:
+      #    name: Decode dotenv file
+      #    command: echo $ENV_FILE | base64 --decode > ./.env
+
+      - run: sudo docker-php-ext-install pdo_mysql
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            # "composer.lock" can be used if it is committed to the repo
+            - v1-dependencies-{{ checksum "./src/composer.json" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+
+      - run:
+          command: composer install -n --prefer-dist  
+          working_directory: ./src
+
+      - save_cache:
+          key: v1-dependencies-{{ checksum "./src/composer.json" }}
+          paths:
+            - ./src/vendor
+
+      - run: 
+          command: php artisan migrate  --force
+          working_directory: ./src
+
+      # run tests with phpunit or codecept
+      - run:
+          command: ./vendor/bin/phpunit
+          working_directory: ./src
+        

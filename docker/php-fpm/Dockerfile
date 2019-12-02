@@ -11,6 +11,8 @@ RUN curl -sS https://getcomposer.org/installer | php && \
 
 COPY ./src /var/www/html
 
+RUN composer install
+
 
 FROM product AS develop
 RUN apk add --no-cache  build-base && \

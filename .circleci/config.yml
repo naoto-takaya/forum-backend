@@ -1,12 +1,8 @@
-# PHP CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-php/ for more details
-#
-version: 2
+version: 2.1
 jobs:
   build:
     docker:
-      # Specify the version you desire here
+
       - image: circleci/php:7.3-fpm
       - image: circleci/mysql:5.7
     environment:
@@ -14,25 +10,13 @@ jobs:
         - APP_ENV: testing
         - APP_KEY: base64:CxIPfh57UZxLKUojcbA1qc8hHWgR4WCsrdsNG8ibwHE=
         - DB_CONNECTION: circleci
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # Using the RAM variation mitigates I/O contention
-      # for database intensive operations.<env name="DB_CONNECTION" value="sqlite_testing"/>
-      # - image: circleci/mysql:5.7-ram
-      #
-      # - image: redis:2.8.19
     steps:
       - checkout
-
       - run: sudo docker-php-ext-install pdo_mysql
 
-      # Download and cache dependencies
       - restore_cache:
           keys:
-            # "composer.lock" can be used if it is committed to the repo
             - v1-dependencies-{{ checksum "./src/composer.json" }}
-            # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
 
       - run:
@@ -48,8 +32,45 @@ jobs:
           command: php artisan migrate  --database=circleci --force
           working_directory: ./src
 
-      # run tests with phpunit or codecept
       - run:
           command: ./vendor/bin/phpunit
           working_directory: ./src
-        
+
+
+orbs:
+  aws-ecr: circleci/aws-ecr@6.5.0
+  aws-ecs: circleci/aws-ecs@0.0.10
+workflows:
+  build_and_deploy:
+    jobs:
+      - build
+      - aws-ecr/build-and-push-image:
+          path: ./docker/nginx/
+          name: 'nginx_build'
+          account-url: AWS_ECR_ACCOUNT_URL
+          repo: '${APP_PREFIX}-nginx'
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
+      - aws-ecr/build-and-push-image:
+          path: ./docker/php-fpm/
+          name: 'php_build'
+          account-url: AWS_ECR_ACCOUNT_URL
+          repo: '${APP_PREFIX}-php'
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
+      - aws-ecs/deploy-service-update:
+          name: 'ecs-deploy'
+          family: '${APP_PREFIX}-task'
+          cluster-name: '${APP_PREFIX}-cluster'
+          service-name: '${APP_PREFIX}-service'
+          requires:
+            - nginx_build
+          filters:
+            branches:
+              only: master

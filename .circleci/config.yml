@@ -47,7 +47,7 @@ workflows:
       - aws-ecr/build-and-push-image:
           path: ./docker/nginx/
           name: 'nginx_build'
-          account-url: AWS_ECR_ACCOUNT_URL
+          account-url: ECR_FORUM_NGINX
           repo: '${APP_PREFIX}-nginx'
           requires:
             - build
@@ -57,7 +57,7 @@ workflows:
       - aws-ecr/build-and-push-image:
           path: ./docker/php-fpm/
           name: 'php_build'
-          account-url: AWS_ECR_ACCOUNT_URL
+          account-url: ECR_FORUM_PHP
           repo: '${APP_PREFIX}-php'
           requires:
             - build

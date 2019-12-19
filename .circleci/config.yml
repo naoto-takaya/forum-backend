@@ -12,7 +12,16 @@ jobs:
         - DB_CONNECTION: circleci
     steps:
       - checkout
-      - run: sudo docker-php-ext-install pdo_mysql
+
+      - run:
+          name: library_setup 
+          command: |
+            sudo apt-get update && sudo apt-get install -y libpng-dev libjpeg-dev |
+            sudo docker-php-ext-configure gd --with-png-dir=/usr/include --with-jpeg-dir=/usr/include  
+
+      - run: sudo docker-php-ext-configure gd --with-png-dir=/usr/lib/ --with-jpeg-dir=/usr/lib/  --with-gd
+
+      - run: sudo docker-php-ext-install pdo_mysql gd
 
       - restore_cache:
           keys:

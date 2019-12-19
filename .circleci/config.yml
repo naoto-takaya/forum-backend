@@ -13,7 +13,7 @@ jobs:
     steps:
       - checkout
 
-      - run: apt-get install libpng libpng-devel
+      - run: sudo apt-get install libpng libpng-devel
 
       - run: sudo docker-php-ext-install pdo_mysql gd
 

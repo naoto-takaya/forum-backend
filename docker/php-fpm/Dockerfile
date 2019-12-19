@@ -1,4 +1,5 @@
 FROM php:7.3-fpm-alpine AS product 
+WORKDIR /var/www/html
 RUN set -x && \
   apk update  && \
   apk add --no-cache autoconf curl \
@@ -22,11 +23,10 @@ RUN curl -sS https://getcomposer.org/installer | php && \
   chmod +x /usr/local/bin/composer
 
 
-COPY composer.* /var/www/html/
+COPY ./src /var/www/html
 RUN composer install
 
 COPY ./docker/php-fpm/php.ini /usr/local/etc/php/
-COPY ./src /var/www/html
 
 FROM product AS develop
 RUN apk add --no-cache  build-base && \

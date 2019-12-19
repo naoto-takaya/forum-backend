@@ -12,7 +12,7 @@ jobs:
         - DB_CONNECTION: circleci
     steps:
       - checkout
-      - run: sudo docker-php-ext-install pdo_mysql
+      - run: sudo docker-php-ext-install pdo_mysql gd
 
       - restore_cache:
           keys:

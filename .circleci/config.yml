@@ -1,4 +1,4 @@
-version: 2.0
+version: 2.1
 jobs:
   build:
     docker:
@@ -46,40 +46,40 @@ jobs:
           working_directory: ./src
 
 
-# orbs:
-#   aws-ecr: circleci/aws-ecr@6.5.0
-#   aws-ecs: circleci/aws-ecs@1.0.4
-# workflows:
-#   build_and_deploy:
-#     jobs:
-#       - build
-#       - aws-ecr/build-and-push-image:
-#           dockerfile: ./docker/nginx/Dockerfile
-#           path: ./
-#           name: 'nginx_build'
-#           repo: '${APP_PREFIX}-nginx'
-#           requires:
-#             - build
-#           filters:
-#             branches:
-#               only: master
-#       - aws-ecr/build-and-push-image:
-#           dockerfile: ./docker/php-fpm/Dockerfile
-#           path: ./
-#           name: 'php_build'
-#           repo: '${APP_PREFIX}-php'
-#           requires:
-#             - build
-#           filters:
-#             branches:
-#               only: master
-#       - aws-ecs/deploy-service-update:
-#           name: 'ecs-deploy'
-#           family: '${APP_PREFIX}-task'
-#           cluster-name: '${APP_PREFIX}-cluster'
-#           service-name: '${APP_PREFIX}-service'
-#           requires:
-#             - php_build
-#           filters:
-#             branches:
-#               only: master
+orbs:
+  aws-ecr: circleci/aws-ecr@6.5.0
+  aws-ecs: circleci/aws-ecs@1.0.4
+workflows:
+  build_and_deploy:
+    jobs:
+      - build
+      - aws-ecr/build-and-push-image:
+          dockerfile: ./docker/nginx/Dockerfile
+          path: ./
+          name: 'nginx_build'
+          repo: '${APP_PREFIX}-nginx'
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
+      - aws-ecr/build-and-push-image:
+          dockerfile: ./docker/php-fpm/Dockerfile
+          path: ./
+          name: 'php_build'
+          repo: '${APP_PREFIX}-php'
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
+      - aws-ecs/deploy-service-update:
+          name: 'ecs-deploy'
+          family: '${APP_PREFIX}-task'
+          cluster-name: '${APP_PREFIX}-cluster'
+          service-name: '${APP_PREFIX}-service'
+          requires:
+            - php_build
+          filters:
+            branches:
+              only: master

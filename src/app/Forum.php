@@ -3,11 +3,13 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Response;
 
 class Forum extends Model
 {
     protected $guarded = [
         'id',
+        'user_id',
         'created_at',
         'updated_at'
     ];
@@ -17,8 +19,8 @@ class Forum extends Model
         'updated_at'
     ];
 
-    public function topic()
+    public function response()
     {
-        return $this->hasMany('App\Topic');
+        return $this->hasMany(Response::class);
     }
 }

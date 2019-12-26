@@ -15,14 +15,18 @@ class CreateResponsesTable extends Migration
     {
         Schema::create('responses', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->unsignedbigInteger('topic_id');
+            // $table->unsignedbigInteger('user_id');
+            $table->unsignedbigInteger('forum_id');
             $table->text('content');
             $table->string('image', 200)->nullable();
             $table->timestamps();
 
-            $table->foreign('topic_id')
+            // $table->foreign('user_id')
+            //     ->references('id')
+            //     ->on('users')->onUpdate('cascade');
+            $table->foreign('forum_id')
                 ->references('id')
-                ->on('topics')->onDelete('cascade');
+                ->on('forums')->onUpdate('cascade');
         });
     }
 

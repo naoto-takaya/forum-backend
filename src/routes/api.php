@@ -14,12 +14,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('api')->get('/user', function (Request $request) {
-    return $request->user();
-});
 Route::get('/forums{forum_id}', 'ForumController@get_forum')->name('forums.get_forum');
 Route::get('/forums', 'ForumController@list')->name('forums.list');
 Route::post('/forums', 'ForumController@create')->name('forums.create');
-Route::get('/test', function (Request $request) {
-    return response()->json(['message' => 'success'], 200);
-});

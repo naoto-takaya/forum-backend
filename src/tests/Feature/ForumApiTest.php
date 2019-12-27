@@ -53,6 +53,32 @@ class ForumApiTest extends TestCase
     }
 
     /**
+     * @test
+     * forumの更新に成功する
+     */
+    public function success_update_forum()
+    {
+        $response = $this->json('POST', route('forums.create'), [
+            'title' => $this->forum->title,
+            'image' => $this->forum->image,
+        ]);
+
+        $forum = Forum::first();
+
+        $response = $this->json('PATCH', route('forums.update'), [
+            'id' => $forum->id,
+            'title' => "updated",
+            'image' => $this->forum->image,
+        ]);
+        $response->assertStatus(204);
+        $updated_forum = Forum::first();
+        $this->assertEquals("updated", $updated_forum->title);
+        $this->assertNotEquals($forum->image, $updated_forum->image);
+
+        Storage::cloud()->assertExists($updated_forum->filename);
+    }
+
+    /**
      * フォーラムを1件取得する
      * @test
      */
@@ -94,5 +120,19 @@ class ForumApiTest extends TestCase
         $response->assertJsonFragment([
             'title' => $this->forum->title,
         ]);
+    }
+
+    /**
+     * @test
+     */
+    public function success_delete_forum()
+    {
+        $forum = $this->json('POST', route('forums.create'), [
+            'title' => $this->forum->title,
+            'image' => $this->forum->image,
+        ]);
+        $forum = Forum::first();
+        $response = $this->delete(route('forums.delete', ['forum_id' => $forum->id]));
+        $response->assertStatus(204);
     }
 }

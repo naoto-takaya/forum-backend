@@ -21,11 +21,34 @@ class ForumController extends Controller
         try {
             if ($request->image) {
                 $filepath  = Image::image_upload($request->image);
+                $request = new Request($request->all());
+                $request->merge(['image' => $filepath]);
             }
             $forum = Forum::create($request->all());
             DB::commit();
             return response()
                 ->json([], 201);
+        } catch (\Exception $e) {
+            DB::rollback();
+            Image::image_delete($filepath);
+            return response()
+                ->json([], 500);
+        }
+    }
+
+    protected function update(ForumRequest $request)
+    {
+        DB::beginTransaction();
+        try {
+            if ($request->image) {
+                $filepath  = Image::image_upload($request->image);
+                $request = new Request($request->all());
+                $request->merge(['image' => $filepath]);
+            }
+            $forum = Forum::find($request->id)->fill($request->all())->save();
+            DB::commit();
+            return response()
+                ->json([], 204);
         } catch (\Exception $e) {
             DB::rollback();
             Image::image_delete($filepath);
@@ -54,5 +77,15 @@ class ForumController extends Controller
         return response()
             ->json(['forum' => $forum])
             ->setStatusCode(200);
+    }
+
+    /**
+     * forumの削除
+     */
+    protected function delete($id)
+    {
+        $result = Forum::destroy($id);
+        return response()
+            ->json([], 204);
     }
 }

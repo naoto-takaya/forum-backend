@@ -17,9 +17,12 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('api')->get('/user', function (Request $request) {
     return $request->user();
 });
+// forumApi
 Route::get('/forums{forum_id}', 'ForumController@get_forum')->name('forums.get_forum');
 Route::get('/forums', 'ForumController@list')->name('forums.list');
 Route::post('/forums', 'ForumController@create')->name('forums.create');
+Route::patch('/forums', 'ForumController@update')->name('forums.update');
+Route::delete('/forums{forum_id}', 'ForumController@delete')->name('forums.delete');
 Route::get('/test', function (Request $request) {
     return response()->json(['message' => 'success'], 200);
 });

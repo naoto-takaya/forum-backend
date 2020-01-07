@@ -22,9 +22,13 @@ RUN curl -sS https://getcomposer.org/installer | php && \
   mv composer.phar /usr/local/bin/composer && \
   chmod +x /usr/local/bin/composer
 
-
+COPY ./src/database /var/www/html/database
+COPY ./src/tests /var/www/html/tests
+COPY ./src/composer.* /var/www/html/
+RUN composer install --no-scripts
 COPY ./src /var/www/html
-RUN composer install
+RUN php artisan clear-compiled
+RUN php artisan optimize
 
 COPY ./docker/php-fpm/php.ini /usr/local/etc/php/
 

@@ -26,7 +26,8 @@ class CreateResponsesTable extends Migration
             //     ->on('users')->onUpdate('cascade');
             $table->foreign('forum_id')
                 ->references('id')
-                ->on('forums')->onUpdate('cascade');
+                ->on('forums')->onUpdate('cascade')
+                ->on('forums')->onDelete('cascade');
         });
     }
 

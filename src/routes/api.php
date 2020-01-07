@@ -14,6 +14,11 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+
+
+// forumApi
 Route::get('/forums{forum_id}', 'ForumController@get_forum')->name('forums.get_forum');
 Route::get('/forums', 'ForumController@list')->name('forums.list');
 Route::post('/forums', 'ForumController@create')->name('forums.create');
+Route::patch('/forums', 'ForumController@update')->name('forums.update');
+Route::delete('/forums{forum_id}', 'ForumController@delete')->name('forums.delete');

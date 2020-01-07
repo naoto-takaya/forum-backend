@@ -2,7 +2,7 @@
 
 /** @var \Illuminate\Database\Eloquent\Factory $factory */
 
-use App\Forum;
+use App\Infrastructure\Forum;
 use Illuminate\Http\UploadedFile;
 use Faker\Generator as Faker;
 

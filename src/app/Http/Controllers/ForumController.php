@@ -2,35 +2,31 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use App\Forum;
+use App\Infrastructure\Forum;
 use App\Http\Requests\ForumRequest;
+use App\Services\ForumService;
 use App\Services\Image;
 
 class ForumController extends Controller
 {
+    protected   $forum_service;
+
+    public  function __construct(ForumService $forum_service)
+    {
+        $this->forum_service =  $forum_service;
+    }
     /**
      * forumの作成
      * @return \Illuminate\Http\Response
      */
     protected function create(ForumRequest $request)
     {
-        DB::beginTransaction();
         try {
-            if ($request->image) {
-                $filepath  = Image::image_upload($request->image);
-                $request = new Request($request->all());
-                $request->merge(['image' => $filepath]);
-            }
-            $forum = Forum::create($request->all());
-            DB::commit();
+            $this->forum_service->create($request);
             return response()
                 ->json([], 201);
         } catch (\Exception $e) {
-            DB::rollback();
-            Image::image_delete($filepath);
             return response()
                 ->json([], 500);
         }
@@ -38,20 +34,14 @@ class ForumController extends Controller
 
     protected function update(ForumRequest $request)
     {
-        DB::beginTransaction();
         try {
-            if ($request->image) {
-                $filepath  = Image::image_upload($request->image);
-                $request = new Request($request->all());
-                $request->merge(['image' => $filepath]);
-            }
-            $forum = Forum::find($request->id)->fill($request->all())->save();
-            DB::commit();
+            $this->forum_service->update($request);
             return response()
                 ->json([], 204);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()
+                ->json([], 404);
         } catch (\Exception $e) {
-            DB::rollback();
-            Image::image_delete($filepath);
             return response()
                 ->json([], 500);
         }
@@ -62,7 +52,7 @@ class ForumController extends Controller
      */
     protected function list()
     {
-        $forums = Forum::all();
+        $forums = $this->forum_service->get_list();
         return response()
             ->json(['forums' => $forums])
             ->setStatusCode(200);
@@ -73,7 +63,7 @@ class ForumController extends Controller
      */
     protected function get_forum($id)
     {
-        $forum = Forum::find($id);
+        $forum = $this->forum_service->get($id);
         return response()
             ->json(['forum' => $forum])
             ->setStatusCode(200);
@@ -84,8 +74,13 @@ class ForumController extends Controller
      */
     protected function delete($id)
     {
-        $result = Forum::destroy($id);
-        return response()
-            ->json([], 204);
+        try {
+            $forum = $this->forum_service->delete($id);
+            return response()
+                ->json([], 204);
+        } catch (\Exception $e) {
+            return response()
+                ->json([], 500);
+        }
     }
 }

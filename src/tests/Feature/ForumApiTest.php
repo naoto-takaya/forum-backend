@@ -3,10 +3,11 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Http\UploadedFile;
-use App\Forum;
+use App\Infrastructure\Forum;
 use Tests\TestCase;
 
 class ForumApiTest extends TestCase
@@ -79,6 +80,28 @@ class ForumApiTest extends TestCase
     }
 
     /**
+     * 更新に失敗する 更新対象のレコードが存在しない
+     * @test
+     */
+    public function fail_update_not_exsit_record()
+    {
+        $response = $this->json('POST', route('forums.create'), [
+            'title' => $this->forum->title,
+            'image' => $this->forum->image,
+        ]);
+
+        $forum = Forum::first();
+        $forum->delete();
+
+        $response = $this->json('PATCH', route('forums.update'), [
+            'id' => $forum->id,
+            'title' => "updated",
+            'image' => $this->forum->image,
+        ]);
+        $response->assertStatus(404);
+    }
+
+    /**
      * フォーラムを1件取得する
      * @test
      */
@@ -123,6 +146,7 @@ class ForumApiTest extends TestCase
     }
 
     /**
+     * フォーラムの削除に成功する
      * @test
      */
     public function success_delete_forum()
@@ -132,6 +156,22 @@ class ForumApiTest extends TestCase
             'image' => $this->forum->image,
         ]);
         $forum = Forum::first();
+        $response = $this->delete(route('forums.delete', ['forum_id' => $forum->id]));
+        $response->assertStatus(204);
+    }
+
+    /**
+     * フォーラムの削除に失敗する :削除対象のレコードが存在しない
+     * @test
+     */
+    public function fail_delete_forum_table_not_exist()
+    {
+        $forum = $this->json('POST', route('forums.create'), [
+            'title' => $this->forum->title,
+            'image' => $this->forum->image,
+        ]);
+        $forum = Forum::first();
+        Forum::destroy($forum->id);
         $response = $this->delete(route('forums.delete', ['forum_id' => $forum->id]));
         $response->assertStatus(204);
     }

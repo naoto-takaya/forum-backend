@@ -1,10 +1,9 @@
 <?php
 
-namespace App;
+namespace App\Infrastructure;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Forum;
-use App\User;
+use App\Infrastructure\Forum;
 
 class Response extends Model
 {

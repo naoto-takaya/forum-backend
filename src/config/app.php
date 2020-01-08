@@ -178,6 +178,8 @@ return [
 
         App\Providers\ForumServiceProvider::class,
         App\Providers\ForumRepositoryProvider::class,
+        App\Providers\ResponseServiceProvider::class,
+        App\Providers\ResponseRepositoryProvider::class,
 
     ],
 

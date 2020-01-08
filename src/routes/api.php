@@ -13,6 +13,11 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+// auth
+Route::post('/register', 'Auth\RegisterController@register')->name('register');
+Route::post('/login', 'Auth\LoginController@login')->name('login');
+Route::get('/logout', 'Auth\LoginController@logout')->middleware('auth')->name('logout');
+
 // forumApi
 Route::get('/forums{forum_id}', 'ForumController@get_forum')->name('forums.get_forum');
 Route::get('/forums', 'ForumController@list')->name('forums.list');

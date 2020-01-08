@@ -46,11 +46,6 @@ class Forum extends Model
         }
     }
 
-    // public function delete($id)
-    // {
-    //     Forum::destroy($id);
-    // }
-
     public function get_list()
     {
         return  Forum::all();

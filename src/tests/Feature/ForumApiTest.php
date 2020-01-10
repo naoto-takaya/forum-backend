@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Http\UploadedFile;
 use App\Infrastructure\Forum;
+use App\User;
 use Tests\TestCase;
 
 class ForumApiTest extends TestCase
@@ -17,7 +18,7 @@ class ForumApiTest extends TestCase
     public function setup(): void
     {
         parent::setUp();
-
+        $this->user = factory(User::class)->create();
         Storage::fake('s3');
         $this->forum = factory(Forum::class)->make();
     }
@@ -29,7 +30,7 @@ class ForumApiTest extends TestCase
     public function create_success()
     {
 
-        $response = $this->json('POST', route('forums.create'), [
+        $response = $this->actingAs($this->user)->json('POST', route('forums.create'), [
             'title' => $this->forum->title,
             'image' => $this->forum->image,
         ]);
@@ -46,10 +47,25 @@ class ForumApiTest extends TestCase
      */
     public function create_require_title()
     {
-        $response = $this->json('POST', route('forums.create'), [
+        $response = $this->actingAs($this->user)->json('POST', route('forums.create'), [
             'image' => $this->forum->image,
         ]);
         $response->assertStatus(422);
+        $this->assertEmpty(Forum::all());
+    }
+
+    /**
+     * 作成時、認証されていない場合権限なしのエラーを返却
+     * @test
+     */
+    public function create_require_auth()
+    {
+        $response = $this->json('POST', route('forums.create'), [
+            'title' => $this->forum->title,
+            'image' => $this->forum->image,
+        ]);
+
+        $response->assertStatus(401);
         $this->assertEmpty(Forum::all());
     }
 
@@ -59,14 +75,14 @@ class ForumApiTest extends TestCase
      */
     public function success_update_forum()
     {
-        $response = $this->json('POST', route('forums.create'), [
+        $response = $this->actingAs($this->user)->json('POST', route('forums.create'), [
             'title' => $this->forum->title,
             'image' => $this->forum->image,
         ]);
 
         $forum = Forum::first();
 
-        $response = $this->json('PATCH', route('forums.update'), [
+        $response = $this->actingAs($this->user)->json('PATCH', route('forums.update'), [
             'id' => $forum->id,
             'title' => "updated",
             'image' => $this->forum->image,
@@ -85,7 +101,7 @@ class ForumApiTest extends TestCase
      */
     public function fail_update_not_exsit_record()
     {
-        $response = $this->json('POST', route('forums.create'), [
+        $response = $this->actingAs($this->user)->json('POST', route('forums.create'), [
             'title' => $this->forum->title,
             'image' => $this->forum->image,
         ]);
@@ -93,7 +109,7 @@ class ForumApiTest extends TestCase
         $forum = Forum::first();
         $forum->delete();
 
-        $response = $this->json('PATCH', route('forums.update'), [
+        $response = $this->actingAs($this->user)->json('PATCH', route('forums.update'), [
             'id' => $forum->id,
             'title' => "updated",
             'image' => $this->forum->image,
@@ -102,12 +118,35 @@ class ForumApiTest extends TestCase
     }
 
     /**
+     * 更新時、認証されていない場合権限なしのエラーを返却
+     * @test
+     */
+    public function fail_update_require_auth()
+    {
+        $this->actingAs($this->user)->json('POST', route('forums.create'), [
+            'title' => $this->forum->title,
+            'image' => $this->forum->image,
+        ]);
+
+        $forum = Forum::first();
+
+        $response = $this->json('PATCH', route('forums.update'), [
+            'id' => $forum->id,
+            'title' => "updated",
+            'image' => $this->forum->image,
+        ]);
+
+        $response->assertStatus(401);
+        $this->assertEquals($this->forum->title, $forum->title);
+    }
+
+    /**
      * フォーラムを1件取得する
      * @test
      */
     public function get_forum()
     {
-        $this->json('POST', route('forums.create'), [
+        $this->actingAs($this->user)->json('POST', route('forums.create'), [
             'title' => $this->forum->title,
             'image' => $this->forum->image,
         ]);
@@ -132,7 +171,7 @@ class ForumApiTest extends TestCase
     public function get_forum_list()
     {
 
-        $forum = $this->json('POST', route('forums.create'), [
+        $forum = $this->actingAs($this->user)->json('POST', route('forums.create'), [
             'title' => $this->forum->title,
             'image' => $this->forum->image,
         ]);
@@ -151,12 +190,12 @@ class ForumApiTest extends TestCase
      */
     public function success_delete_forum()
     {
-        $forum = $this->json('POST', route('forums.create'), [
+        $forum = $this->actingAs($this->user)->json('POST', route('forums.create'), [
             'title' => $this->forum->title,
             'image' => $this->forum->image,
         ]);
         $forum = Forum::first();
-        $response = $this->delete(route('forums.delete', ['forum_id' => $forum->id]));
+        $response = $this->actingAs($this->user)->delete(route('forums.delete', ['forum_id' => $forum->id]));
         $response->assertStatus(204);
     }
 
@@ -166,7 +205,7 @@ class ForumApiTest extends TestCase
      */
     public function fail_delete_forum_table_not_exist()
     {
-        $forum = $this->json('POST', route('forums.create'), [
+        $forum = $this->actingAs($this->user)->actingAs($this->user)->json('POST', route('forums.create'), [
             'title' => $this->forum->title,
             'image' => $this->forum->image,
         ]);

@@ -2,13 +2,14 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Http\UploadedFile;
-use App\Infrastructure\Forum;
 use App\User;
+use App\Infrastructure\Forum;
 use Tests\TestCase;
 
 class ForumApiTest extends TestCase
@@ -115,6 +116,7 @@ class ForumApiTest extends TestCase
             'image' => $this->forum->image,
         ]);
         $response->assertStatus(404);
+        $this->assertEquals($this->forum->title, $forum->title);
     }
 
     /**
@@ -130,7 +132,34 @@ class ForumApiTest extends TestCase
 
         $forum = Forum::first();
 
+        Auth::logout();
         $response = $this->json('PATCH', route('forums.update'), [
+            'id' => $forum->id,
+            'title' => "updated",
+            'image' => $this->forum->image,
+        ]);
+
+        $response->assertStatus(401);
+        $this->assertEquals($this->forum->title, $forum->title);
+    }
+
+    /**
+     * 作成時と異なるユーザーが更新しようとした場合、認証エラーを返却
+     * @test
+     */
+    public function fail_update_different_user()
+    {
+        $this->actingAs($this->user)->json('POST', route('forums.create'), [
+            'title' => $this->forum->title,
+            'image' => $this->forum->image,
+        ]);
+
+        $forum = Forum::first();
+
+        Auth::logout();
+        $this->user = factory(User::class)->create();
+
+        $response = $this->actingAs($this->user)->json('PATCH', route('forums.update'), [
             'id' => $forum->id,
             'title' => "updated",
             'image' => $this->forum->image,
@@ -176,7 +205,6 @@ class ForumApiTest extends TestCase
             'image' => $this->forum->image,
         ]);
         $forum->assertStatus(201);
-
         $response = $this->json('GET', route('forums.list'));
         $response->assertStatus(200);
         $response->assertJsonFragment([
@@ -195,7 +223,7 @@ class ForumApiTest extends TestCase
             'image' => $this->forum->image,
         ]);
         $forum = Forum::first();
-        $response = $this->actingAs($this->user)->delete(route('forums.delete', ['forum_id' => $forum->id]));
+        $response = $this->actingAs($this->user)->delete(route('forums.remove', ['forum_id' => $forum->id]));
         $response->assertStatus(204);
     }
 
@@ -211,7 +239,26 @@ class ForumApiTest extends TestCase
         ]);
         $forum = Forum::first();
         Forum::destroy($forum->id);
-        $response = $this->delete(route('forums.delete', ['forum_id' => $forum->id]));
-        $response->assertStatus(204);
+        $response = $this->delete(route('forums.remove', ['forum_id' => $forum->id]));
+        $response->assertStatus(404);
+    }
+
+    /**
+     * フォーラムの削除に失敗する :作成時と異なるユーザーが削除する
+     * @test
+     */
+    public function fail_delete_different_user()
+    {
+        $forum = $this->actingAs($this->user)->json('POST', route('forums.create'), [
+            'title' => $this->forum->title,
+            'image' => $this->forum->image,
+        ]);
+
+        $forum = Forum::first();
+        Auth::logout();
+        $this->user = factory(User::class)->create();
+
+        $response = $this->actingAs($this->user)->delete(route('forums.remove', ['forum_id' => $forum->id]));
+        $response->assertStatus(401);
     }
 }

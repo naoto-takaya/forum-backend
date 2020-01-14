@@ -13,5 +13,5 @@ interface ResponseInterface
 
     public function update($request);
 
-    public function delete($id);
+    public function remove($id);
 }

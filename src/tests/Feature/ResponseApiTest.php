@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Infrastructure\Response;
 use App\Infrastructure\Forum;
+use App\User;
 use Tests\TestCase;
 
 class ResponseApiTest extends TestCase
@@ -17,19 +19,24 @@ class ResponseApiTest extends TestCase
         parent::setUp();
 
         Storage::fake('s3');
-        factory(Forum::class)->create();
+        $this->forum = factory(Forum::class)->make();
+        $this->user = factory(User::class)->create();
+        $this->actingAs($this->user)->json('POST', route('forums.create'), [
+            'title' => $this->forum->title,
+            'image' => $this->forum->image,
+        ]);
         $this->forum = Forum::first();
         $this->response = factory(Response::class)->make();
     }
 
     /**
-     * フォーラムの作成に成功する
+     * レスポンスの作成に成功する
      * @test
      */
     public function create_success()
     {
 
-        $response = $this->json('POST', route('responses.create'), [
+        $response = $this->actingAs($this->user)->json('POST', route('responses.create'), [
             'forum_id' => $this->forum->id,
             'content' => $this->response->content,
             'image' => $this->response->image,
@@ -47,7 +54,7 @@ class ResponseApiTest extends TestCase
      */
     public function create_require_content()
     {
-        $response = $this->json('POST', route('responses.create'), [
+        $response = $this->actingAs($this->user)->json('POST', route('responses.create'), [
             'forum_id' => $this->forum->id,
             'image' => $this->response->image,
         ]);
@@ -61,7 +68,7 @@ class ResponseApiTest extends TestCase
      */
     public function success_update_response()
     {
-        $this->json('POST', route('responses.create'), [
+        $this->actingAs($this->user)->json('POST', route('responses.create'), [
             'forum_id' => $this->forum->id,
             'content' => $this->response->content,
             'image' => $this->response->image,
@@ -69,7 +76,7 @@ class ResponseApiTest extends TestCase
 
         $response = Response::first();
 
-        $result = $this->json('PATCH', route('responses.update'), [
+        $result = $this->actingAs($this->user)->json('PATCH', route('responses.update'), [
             'id' => $response->id,
             'content' => "updated",
             'image' => $this->response->image,
@@ -88,7 +95,7 @@ class ResponseApiTest extends TestCase
      */
     public function fail_update_not_exsit_record()
     {
-        $this->json('POST', route('responses.create'), [
+        $this->actingAs($this->user)->json('POST', route('responses.create'), [
             'forum_id' => $this->forum->id,
             'content' => $this->response->content,
             'image' => $this->response->image,
@@ -97,7 +104,7 @@ class ResponseApiTest extends TestCase
         $response = Response::first();
         $response->delete();
 
-        $result = $this->json('PATCH', route('responses.update'), [
+        $result = $this->actingAs($this->user)->json('PATCH', route('responses.update'), [
             'id' => $response->id,
             'content' => "updated",
             'image' => $this->response->image,
@@ -106,12 +113,39 @@ class ResponseApiTest extends TestCase
     }
 
     /**
-     * フォーラムを1件取得する
+     * 更新に失敗する 作成時と異なるユーザーが更新する
+     * @test
+     */
+    public function fail_update_different_user()
+    {
+        $this->actingAs($this->user)->json('POST', route('responses.create'), [
+            'forum_id' => $this->forum->id,
+            'content' => $this->response->content,
+            'image' => $this->response->image,
+        ]);
+
+        $response = Response::first();
+
+        Auth::logout();
+        $this->user = factory(User::class)->create();
+
+        $result = $this->actingAs($this->user)->json('PATCH', route('responses.update'), [
+            'id' => $response->id,
+            'content' => "updated",
+            'image' => $this->response->image,
+        ]);
+
+        $result->assertStatus(401);
+        $this->assertEquals($this->response->content, $response->content);
+    }
+
+    /**
+     * レスポンスを1件取得する
      * @test
      */
     public function get_response()
     {
-        $this->json('POST', route('responses.create'), [
+        $this->actingAs($this->user)->json('POST', route('responses.create'), [
             'forum_id' => $this->forum->id,
             'content' => $this->response->content,
             'image' => $this->response->image,
@@ -131,13 +165,13 @@ class ResponseApiTest extends TestCase
     }
 
     /**
-     * フォーラムを全件取得する
+     * レスポンスを全件取得する
      * @test
      */
     public function get_response_list()
     {
 
-        $result = $this->json('POST', route('responses.create'), [
+        $result = $this->actingAs($this->user)->json('POST', route('responses.create'), [
             'forum_id' => $this->forum->id,
             'content' => $this->response->content,
             'image' => $this->response->image,
@@ -152,35 +186,54 @@ class ResponseApiTest extends TestCase
     }
 
     /**
-     * フォーラムの削除に成功する
+     * レスポンスの削除に成功する
      * @test
      */
     public function success_delete_response()
     {
-        $this->json('POST', route('responses.create'), [
+        $this->actingAs($this->user)->json('POST', route('responses.create'), [
             'forum_id' => $this->forum->id,
             'content' => $this->response->content,
             'image' => $this->response->image,
         ]);
         $response = Response::first();
-        $result = $this->delete(route('responses.delete', ['response_id' => $response->id]));
+        $result = $this->actingAs($this->user)->delete(route('responses.remove', ['response_id' => $response->id]));
         $result->assertStatus(204);
     }
 
     /**
-     * フォーラムの削除に失敗する :削除対象のレコードが存在しない
+     * レスポンスの削除に失敗する :削除対象のレコードが存在しない
      * @test
      */
     public function fail_delete_response_table_not_exist()
     {
-        $this->json('POST', route('responses.create'), [
+        $this->actingAs($this->user)->json('POST', route('responses.create'), [
             'forum_id' => $this->forum->id,
             'content' => $this->response->content,
             'image' => $this->response->image,
         ]);
         $response = Response::first();
         Response::destroy($response->id);
-        $result = $this->delete(route('responses.delete', ['response_id' => $response->id]));
-        $result->assertStatus(204);
+        $result = $this->actingAs($this->user)->delete(route('responses.remove', ['response_id' => $response->id]));
+        $result->assertStatus(404);
+    }
+
+    /**
+     * レスポンスの削除に失敗する :権限がない
+     * @test
+     */
+    public function fail_delete_response_require_auth()
+    {
+        $this->actingAs($this->user)->json('POST', route('responses.create'), [
+            'forum_id' => $this->forum->id,
+            'content' => $this->response->content,
+            'image' => $this->response->image,
+        ]);
+
+        Auth::logout();
+
+        $response = Response::first();
+        $result = $this->delete(route('responses.remove', ['response_id' => $response->id]));
+        $result->assertStatus(401);
     }
 }

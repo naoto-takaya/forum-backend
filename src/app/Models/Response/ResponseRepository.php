@@ -35,8 +35,8 @@ class ResponseRepository implements ResponseInterface
         return $this->response->update($request);
     }
 
-    public function delete($id)
+    public function remove($id)
     {
-        return $this->response->delete($id);
+        return $this->response->remove($id);
     }
 }

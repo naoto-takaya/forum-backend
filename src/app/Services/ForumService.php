@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use App\Models\Forum\ForumInterface;
 use App\Http\Requests\ForumRequest;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ForumService
 {
@@ -18,22 +18,14 @@ class ForumService
 
     public function get($id)
     {
-        try {
-            $forum = $this->forum->get($id);
-            return $forum;
-        } catch (\Exception  $e) {
-            throw $e;
-        }
+        $forum = $this->forum->get($id);
+        return $forum;
     }
 
     public function get_list()
     {
-        try {
-            $forum = $this->forum->get_list();
-            return $forum;
-        } catch (\Exception  $e) {
-            throw $e;
-        }
+        $forum = $this->forum->get_list();
+        return $forum;
     }
 
     public function create(ForumRequest $request)
@@ -74,10 +66,10 @@ class ForumService
         }
     }
 
-    public function delete($id)
+    public function remove($id)
     {
         try {
-            $forum = $this->forum->delete($id);
+            $forum = $this->forum->remove($id);
             return $forum;
         } catch (\Exception  $e) {
             throw $e;

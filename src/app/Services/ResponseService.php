@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use App\Models\Response\ResponseInterface;
 use App\Http\Requests\ResponseCreateRequest;
 use App\Http\Requests\ResponseUpdateRequest;
+use App\Models\Response\ResponseInterface;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ResponseService
 {
@@ -19,22 +19,14 @@ class ResponseService
 
     public function get($id)
     {
-        try {
-            $response = $this->response->get($id);
-            return $response;
-        } catch (\Exception  $e) {
-            throw $e;
-        }
+        $response = $this->response->get($id);
+        return $response;
     }
 
     public function get_list()
     {
-        try {
-            $response = $this->response->get_list();
-            return $response;
-        } catch (\Exception  $e) {
-            throw $e;
-        }
+        $response = $this->response->get_list();
+        return $response;
     }
 
     public function create(ResponseCreateRequest $request)
@@ -75,10 +67,10 @@ class ResponseService
         }
     }
 
-    public function delete($id)
+    public function remove($id)
     {
         try {
-            $response = $this->response->delete($id);
+            $response = $this->response->remove($id);
             return $response;
         } catch (\Exception  $e) {
             throw $e;

@@ -5,8 +5,9 @@ namespace App;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use App\Forum;
-use App\Response;
+use App\Notifications\PasswordResetNotification;
+use App\Infrastructure\Forum;
+use App\Infrastructure\Response;
 
 class User extends Authenticatable
 {
@@ -39,8 +40,18 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
     ];
 
-    // public function response()
-    // {
-    //     return $this->hasMany(Response::class);
-    // }
+    public function forum()
+    {
+        return $this->hasMany(Forum::class);
+    }
+
+    public function response()
+    {
+        return $this->hasMany(Response::class);
+    }
+
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new PasswordResetNotification($token));
+    }
 }

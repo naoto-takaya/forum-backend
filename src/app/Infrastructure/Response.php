@@ -2,8 +2,11 @@
 
 namespace App\Infrastructure;
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 use App\Infrastructure\Forum;
+use App\User;
 
 class Response extends Model
 {
@@ -18,9 +21,10 @@ class Response extends Model
         return $this->belongsTo(Forum::class);
     }
 
-    // public function user(){
-    //     return $this->belongsTo(User::class);
-    // }
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function get($id)
     {
@@ -29,29 +33,30 @@ class Response extends Model
 
     public function create($request)
     {
-        try {
-            Response::fill($request->all())->save();
-            return true;
-        } catch (\Exception $e) {
-            throw $e;
-        }
+        $request->merge(['user_id' => Auth::id()]);
+        Response::fill($request->all())->save();
+        return true;
     }
 
     public function update($request = [], $options = [])
     {
-        try {
-            $response = Response::findOrFail($request->id);
-            $response->fill($request->all())->save();
-            return true;
-        } catch (\Exception $e) {
-            throw $e;
+        $response = Response::findOrFail($request->id);
+        if ($response->user->id != Auth::id()) {
+            throw new AuthenticationException();
         }
+        $response->fill($request->all())->save();
+        return true;
     }
 
-    // public function delete($id)
-    // {
-    //     Response::destroy($id);
-    // }
+    public function remove($id)
+    {
+        $response = Response::findOrFail($id);
+        if ($response->user->id != Auth::id()) {
+            throw new AuthenticationException();
+        }
+        $response->delete();
+        return true;
+    }
 
     public function get_list()
     {

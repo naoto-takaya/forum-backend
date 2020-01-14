@@ -21,14 +21,9 @@ class ResponseController extends Controller
      */
     protected function create(ResponseCreateRequest $request)
     {
-        try {
-            $this->response_service->create($request);
-            return response()
-                ->json([], 201);
-        } catch (\Exception $e) {
-            return response()
-                ->json([], 500);
-        }
+        $this->response_service->create($request);
+        return response()
+            ->json([], 201);
     }
 
     /**
@@ -36,17 +31,9 @@ class ResponseController extends Controller
      */
     protected function update(ResponseUpdateRequest $request)
     {
-        try {
-            $this->response_service->update($request);
-            return response()
-                ->json([], 204);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()
-                ->json([], 404);
-        } catch (\Exception $e) {
-            return response()
-                ->json([], 500);
-        }
+        $this->response_service->update($request);
+        return response()
+            ->json([], 204);
     }
 
     /**
@@ -74,15 +61,10 @@ class ResponseController extends Controller
     /**
      * responseの削除
      */
-    protected function delete($id)
+    protected function remove($id)
     {
-        try {
-            $response = $this->response_service->delete($id);
-            return response()
-                ->json([], 204);
-        } catch (\Exception $e) {
-            return response()
-                ->json([], 500);
-        }
+        $this->response_service->remove($id);
+        return response()
+            ->json([], 204);
     }
 }

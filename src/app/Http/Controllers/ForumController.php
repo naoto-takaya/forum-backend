@@ -2,11 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\DB;
-use App\Infrastructure\Forum;
 use App\Http\Requests\ForumRequest;
 use App\Services\ForumService;
-use App\Services\Image;
 
 class ForumController extends Controller
 {
@@ -22,29 +19,16 @@ class ForumController extends Controller
      */
     protected function create(ForumRequest $request)
     {
-        try {
-            $this->forum_service->create($request);
-            return response()
-                ->json([], 201);
-        } catch (\Exception $e) {
-            return response()
-                ->json([], 500);
-        }
+        $this->forum_service->create($request);
+        return response()
+            ->json([], 201);
     }
 
     protected function update(ForumRequest $request)
     {
-        try {
-            $this->forum_service->update($request);
-            return response()
-                ->json([], 204);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()
-                ->json([], 404);
-        } catch (\Exception $e) {
-            return response()
-                ->json([], 500);
-        }
+        $this->forum_service->update($request);
+        return response()
+            ->json([], 204);
     }
 
     /**
@@ -72,15 +56,10 @@ class ForumController extends Controller
     /**
      * forumの削除
      */
-    protected function delete($id)
+    protected function remove($id)
     {
-        try {
-            $forum = $this->forum_service->delete($id);
-            return response()
-                ->json([], 204);
-        } catch (\Exception $e) {
-            return response()
-                ->json([], 500);
-        }
+        $this->forum_service->remove($id);
+        return response()
+            ->json([], 204);
     }
 }

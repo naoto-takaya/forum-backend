@@ -17,6 +17,7 @@ class CreateResponsesTable extends Migration
             $table->bigIncrements('id');
             $table->unsignedbigInteger('user_id');
             $table->unsignedbigInteger('forum_id');
+            $table->unsignedbigInteger('response_id')->nullable();
             $table->text('content');
             $table->string('image', 200)->nullable();
             $table->timestamps();
@@ -28,6 +29,9 @@ class CreateResponsesTable extends Migration
                 ->references('id')
                 ->on('forums')->onUpdate('cascade')
                 ->on('forums')->onDelete('cascade');
+            $table->foreign('response_id')
+                ->references('id')
+                ->on('responses')->onUpdate('cascade');
         });
     }
 

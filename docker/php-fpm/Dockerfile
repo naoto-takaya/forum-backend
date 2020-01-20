@@ -16,7 +16,10 @@ RUN set -x && \
   --with-png-dir=/usr/lib/ \
   --with-jpeg-dir=/usr/lib/ \
   --with-gd  && \
-  docker-php-ext-install pdo_mysql gd   
+  docker-php-ext-install  \ 
+  pdo_mysql \
+  gd \
+  bcmath 
 
 RUN curl -sS https://getcomposer.org/installer | php && \
   mv composer.phar /usr/local/bin/composer && \

@@ -14,12 +14,6 @@ class RegisterApiTest extends TestCase
     {
         parent::setUp();
         $this->user = factory(User::class)->make();
-        $this->data = [
-            'name' => $this->user->name,
-            'email' => $this->user->email,
-            'password' => $this->user->password,
-            'password_confirmation' => $this->user->password,
-        ];
     }
     /**
      * @test
@@ -27,24 +21,30 @@ class RegisterApiTest extends TestCase
     public function success_register()
     {
 
-        $response = $this->json('POST', route('register'), $this->data);
-
-        $user = User::first();
-        $this->assertEquals($this->data['name'], $user->name);
+        $response = $this->json('POST', route('register'), [
+            'name' => $this->user->name,
+            'email' => $this->user->email,
+            'password' => $this->user->password
+        ]);
 
         $response
             ->assertStatus(201)
-            ->assertJson(['name' => $user->name]);
+            ->assertJsonFragment(['email' => $this->user->email]);
     }
 
     /**
-     * パスワードと確認用パスワードが一致しない場合登録されない
-     * @test
+     * 同じメールアドレスのユーザーは登録されない
      */
-    public function failed_password_wrong()
+    public function failed_deplicate_email()
     {
-        $this->data['password_confirmation'] = 'wrong_password';
-        $response = $this->json('POST', route('register'), $this->data);
+        $user = factory(User::class)->create();
+
+        $response = $this->json('POST', route('register'), [
+            'name' => $this->user->name,
+            'email' => $user->email,
+            'password' => $this->user->password
+        ]);
+
         $this->assertEmpty(User::all());
         $response
             ->assertStatus(422);

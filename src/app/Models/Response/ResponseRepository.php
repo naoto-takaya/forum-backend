@@ -20,6 +20,11 @@ class ResponseRepository implements ResponseInterface
         return $this->response->get($id);
     }
 
+    public function get_replies($id)
+    {
+        return $this->response->get_replies($id);
+    }
+
     public function get_list()
     {
         return $this->response->get_list();

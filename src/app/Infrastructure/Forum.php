@@ -2,13 +2,12 @@
 
 namespace App\Infrastructure;
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use App\Infrastructure\Response;
 use App\User;
-use Exception;
-use Illuminate\Auth\AuthenticationException;
+use Vinkla\Hashids\Facades\Hashids;
 
 class Forum extends Model
 {
@@ -17,6 +16,18 @@ class Forum extends Model
         'created_at',
         'updated_at'
     ];
+
+    public function getRouteKey(): string
+    {
+        return Hashids::connection('forum')->encode($this->getKey());
+    }
+
+    public function resolveRouteBinding($value): ?Model
+    {
+        $value = Hashids::connection('forum')->decode($value)[0] ?? null;
+
+        return $this->where($this->getRouteKeyName(), $value)->first();
+    }
 
     public function response()
     {

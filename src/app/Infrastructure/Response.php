@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use App\Infrastructure\Forum;
 use App\User;
+use Vinkla\Hashids\Facades\Hashids;
 
 class Response extends Model
 {
@@ -15,6 +16,18 @@ class Response extends Model
         'created_at',
         'updated_at'
     ];
+
+    public function getRouteKey(): string
+    {
+        return Hashids::connection('response')->encode($this->getKey());
+    }
+
+    public function resolveRouteBinding($value): ?Model
+    {
+        $value = Hashids::connection('response')->decode($value)[0] ?? null;
+
+        return $this->where($this->getRouteKeyName(), $value)->first();
+    }
 
     public function forum()
     {
@@ -26,10 +39,23 @@ class Response extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function replies()
+    {
+        return $this->hasMany(Response::class, 'response_id');
+    }
+
     public function get($id)
     {
         return Response::find($id);
     }
+
+    public function get_replies($id)
+    {
+        $response = $this->get($id);
+        $replies = $response->replies()->orderBy('id')->get();
+        return $replies;
+    }
+
 
     public function create($request)
     {

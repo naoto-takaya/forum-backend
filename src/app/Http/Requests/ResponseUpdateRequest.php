@@ -26,7 +26,6 @@ class ResponseUpdateRequest extends FormRequest
     public function rules()
     {
         return [
-            'id' => 'required',
             'image' => 'file|mimes:jpg,jpeg,png,gif'
         ];
     }

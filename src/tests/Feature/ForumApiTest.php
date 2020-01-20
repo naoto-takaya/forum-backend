@@ -2,12 +2,8 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Illuminate\Http\UploadedFile;
 use App\User;
 use App\Infrastructure\Forum;
 use Tests\TestCase;
@@ -19,8 +15,8 @@ class ForumApiTest extends TestCase
     public function setup(): void
     {
         parent::setUp();
-        $this->user = factory(User::class)->create();
         Storage::fake('s3');
+        $this->user = factory(User::class)->create();
         $this->forum = factory(Forum::class)->make();
     }
 
@@ -76,22 +72,20 @@ class ForumApiTest extends TestCase
      */
     public function success_update_forum()
     {
-        $response = $this->actingAs($this->user)->json('POST', route('forums.create'), [
-            'title' => $this->forum->title,
-            'image' => $this->forum->image,
+
+        $before_forum = factory(Forum::class)->create(['user_id' => $this->user->id]);
+        $expected_forum = factory(Forum::class)->make();
+
+        $response = $this->actingAs($this->user)->json('PATCH', route('forums.update', ['id' => $before_forum->id]), [
+            'title' => $expected_forum->title,
+            'image' => $expected_forum->image,
         ]);
 
-        $forum = Forum::first();
+        $updated_forum = Forum::find($before_forum->id);
 
-        $response = $this->actingAs($this->user)->json('PATCH', route('forums.update'), [
-            'id' => $forum->id,
-            'title' => "updated",
-            'image' => $this->forum->image,
-        ]);
         $response->assertStatus(204);
-        $updated_forum = Forum::first();
-        $this->assertEquals("updated", $updated_forum->title);
-        $this->assertNotEquals($forum->image, $updated_forum->image);
+        $this->assertNotEquals($before_forum->title, $updated_forum->title);
+        $this->assertNotEquals($before_forum->image, $updated_forum->image);
 
         Storage::cloud()->assertExists($updated_forum->filename);
     }
@@ -102,21 +96,17 @@ class ForumApiTest extends TestCase
      */
     public function fail_update_not_exsit_record()
     {
-        $response = $this->actingAs($this->user)->json('POST', route('forums.create'), [
-            'title' => $this->forum->title,
-            'image' => $this->forum->image,
+        $before_forum = factory(Forum::class)->create(['user_id' => $this->user->id]);
+        $expected_forum = factory(Forum::class)->make();
+
+        Forum::destroy($before_forum->id);
+
+        $response = $this->actingAs($this->user)->json('PATCH', route('forums.update', ['id' => $before_forum->id]), [
+            'title' => $expected_forum->title,
+            'image' => $expected_forum->image,
         ]);
 
-        $forum = Forum::first();
-        $forum->delete();
-
-        $response = $this->actingAs($this->user)->json('PATCH', route('forums.update'), [
-            'id' => $forum->id,
-            'title' => "updated",
-            'image' => $this->forum->image,
-        ]);
         $response->assertStatus(404);
-        $this->assertEquals($this->forum->title, $forum->title);
     }
 
     /**
@@ -125,22 +115,18 @@ class ForumApiTest extends TestCase
      */
     public function fail_update_require_auth()
     {
-        $this->actingAs($this->user)->json('POST', route('forums.create'), [
-            'title' => $this->forum->title,
-            'image' => $this->forum->image,
+        $before_forum = factory(Forum::class)->create();
+        $expected_forum = factory(Forum::class)->make();
+
+        $response = $this->json('PATCH', route('forums.update', ['id' => $before_forum->id]), [
+            'title' => $expected_forum->title,
+            'image' => $expected_forum->image,
         ]);
 
-        $forum = Forum::first();
-
-        Auth::logout();
-        $response = $this->json('PATCH', route('forums.update'), [
-            'id' => $forum->id,
-            'title' => "updated",
-            'image' => $this->forum->image,
-        ]);
+        $updated_forum = Forum::find($before_forum->id);
 
         $response->assertStatus(401);
-        $this->assertEquals($this->forum->title, $forum->title);
+        $this->assertEquals($before_forum->title, $updated_forum->title);
     }
 
     /**
@@ -149,24 +135,18 @@ class ForumApiTest extends TestCase
      */
     public function fail_update_different_user()
     {
-        $this->actingAs($this->user)->json('POST', route('forums.create'), [
-            'title' => $this->forum->title,
-            'image' => $this->forum->image,
+        $before_forum = factory(Forum::class)->create();
+        $expected_forum = factory(Forum::class)->make();
+
+        $response = $this->actingAs($this->user)->json('PATCH', route('forums.update', ['id' => $before_forum->id]), [
+            'title' => $expected_forum->title,
+            'image' => $expected_forum->image,
         ]);
 
-        $forum = Forum::first();
-
-        Auth::logout();
-        $this->user = factory(User::class)->create();
-
-        $response = $this->actingAs($this->user)->json('PATCH', route('forums.update'), [
-            'id' => $forum->id,
-            'title' => "updated",
-            'image' => $this->forum->image,
-        ]);
+        $updated_forum = Forum::find($before_forum->id);
 
         $response->assertStatus(401);
-        $this->assertEquals($this->forum->title, $forum->title);
+        $this->assertEquals($before_forum->title, $updated_forum->title);
     }
 
     /**
@@ -175,15 +155,11 @@ class ForumApiTest extends TestCase
      */
     public function get_forum()
     {
-        $this->actingAs($this->user)->json('POST', route('forums.create'), [
-            'title' => $this->forum->title,
-            'image' => $this->forum->image,
-        ]);
-        $forum = Forum::first();
-        $response = $this->json('GET', route('forums.get_forum', ['forum_id' => $forum->id]));
+        $forum = factory(Forum::class)->create();
+        $response = $this->json('GET', route('forums.get_forum', ['id' => $forum->id]));
         $response
             ->assertStatus(200)
-            ->assertJson([
+            ->assertJsonFragment([
                 'forum' =>
                 [
                     'id' => $forum->id,
@@ -200,16 +176,24 @@ class ForumApiTest extends TestCase
     public function get_forum_list()
     {
 
-        $forum = $this->actingAs($this->user)->json('POST', route('forums.create'), [
-            'title' => $this->forum->title,
-            'image' => $this->forum->image,
-        ]);
-        $forum->assertStatus(201);
+        $forums = factory(Forum::class, 3)->states('get')->create();
         $response = $this->json('GET', route('forums.list'));
-        $response->assertStatus(200);
-        $response->assertJsonFragment([
-            'title' => $this->forum->title,
-        ]);
+        $expected_json = $forums->map(function ($forum) {
+            return [
+                'id' => $forum->id,
+                'user_id' => $forum->user_id,
+                'title' => $forum->title,
+                'image' => $forum->image,
+                'created_at' => $forum->created_at->format('Y-m-d h:i:s'),
+                'updated_at' => $forum->updated_at->format('Y-m-d H:i:s'),
+            ];
+        })->all();
+
+        $response
+            ->assertStatus(200)
+            ->assertJsonFragment([
+                'forums' => $expected_json
+            ]);
     }
 
     /**
@@ -218,12 +202,8 @@ class ForumApiTest extends TestCase
      */
     public function success_delete_forum()
     {
-        $forum = $this->actingAs($this->user)->json('POST', route('forums.create'), [
-            'title' => $this->forum->title,
-            'image' => $this->forum->image,
-        ]);
-        $forum = Forum::first();
-        $response = $this->actingAs($this->user)->delete(route('forums.remove', ['forum_id' => $forum->id]));
+        $forum = factory(Forum::class)->create(['user_id' => $this->user->id]);
+        $response = $this->actingAs($this->user)->delete(route('forums.remove', ['id' => $forum->id]));
         $response->assertStatus(204);
     }
 
@@ -233,13 +213,9 @@ class ForumApiTest extends TestCase
      */
     public function fail_delete_forum_table_not_exist()
     {
-        $forum = $this->actingAs($this->user)->actingAs($this->user)->json('POST', route('forums.create'), [
-            'title' => $this->forum->title,
-            'image' => $this->forum->image,
-        ]);
-        $forum = Forum::first();
+        $forum = factory(Forum::class)->create(['user_id' => $this->user->id]);
         Forum::destroy($forum->id);
-        $response = $this->delete(route('forums.remove', ['forum_id' => $forum->id]));
+        $response = $this->actingAs($this->user)->delete(route('forums.remove', ['id' => $forum->id]));
         $response->assertStatus(404);
     }
 
@@ -249,16 +225,9 @@ class ForumApiTest extends TestCase
      */
     public function fail_delete_different_user()
     {
-        $forum = $this->actingAs($this->user)->json('POST', route('forums.create'), [
-            'title' => $this->forum->title,
-            'image' => $this->forum->image,
-        ]);
+        $forum = factory(Forum::class)->create();
 
-        $forum = Forum::first();
-        Auth::logout();
-        $this->user = factory(User::class)->create();
-
-        $response = $this->actingAs($this->user)->delete(route('forums.remove', ['forum_id' => $forum->id]));
+        $response = $this->actingAs($this->user)->delete(route('forums.remove', ['id' => $forum->id]));
         $response->assertStatus(401);
     }
 }

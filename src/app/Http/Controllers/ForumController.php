@@ -24,8 +24,9 @@ class ForumController extends Controller
             ->json([], 201);
     }
 
-    protected function update(ForumRequest $request)
+    protected function update(ForumRequest $request, $id)
     {
+        $request->merge(['id' => $id]);
         $this->forum_service->update($request);
         return response()
             ->json([], 204);

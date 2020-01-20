@@ -23,6 +23,12 @@ class ResponseService
         return $response;
     }
 
+    public function get_replies($id)
+    {
+        return  $this->response->get_replies($id);
+    }
+
+
     public function get_list()
     {
         $response = $this->response->get_list();

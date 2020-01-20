@@ -7,6 +7,8 @@ interface ResponseInterface
 {
     public function get($id);
 
+    public function get_replies($id);
+
     public function get_list();
 
     public function create($request);

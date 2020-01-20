@@ -2,9 +2,8 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use App\Infrastructure\Response;
 use App\Infrastructure\Forum;
 use App\User;
@@ -68,25 +67,23 @@ class ResponseApiTest extends TestCase
      */
     public function success_update_response()
     {
-        $this->actingAs($this->user)->json('POST', route('responses.create'), [
-            'forum_id' => $this->forum->id,
-            'content' => $this->response->content,
-            'image' => $this->response->image,
+        $response = factory(Response::class)->create();
+        $expected_response = factory(Response::class)->create();
+
+        $user = User::find($response->user_id);
+
+        $result = $this->actingAs($user)->json('PATCH', route('responses.update', ['id' => $response->id]), [
+            'content' => $expected_response->content,
+            'image' => $expected_response->image,
         ]);
 
-        $response = Response::first();
 
-        $result = $this->actingAs($this->user)->json('PATCH', route('responses.update'), [
-            'id' => $response->id,
-            'content' => "updated",
-            'image' => $this->response->image,
-        ]);
+        $updated_response = Response::find($response->id);
+
         $result->assertStatus(204);
-        $updated_response = Response::first();
-        $this->assertEquals("updated", $updated_response->content);
-        $this->assertNotEquals($response->image, $updated_response->image);
+        $this->assertEquals($expected_response->content, $updated_response->content);
 
-        Storage::cloud()->assertExists($updated_response->filename);
+        Storage::cloud()->assertExists($updated_response->image);
     }
 
     /**
@@ -95,19 +92,14 @@ class ResponseApiTest extends TestCase
      */
     public function fail_update_not_exsit_record()
     {
-        $this->actingAs($this->user)->json('POST', route('responses.create'), [
-            'forum_id' => $this->forum->id,
-            'content' => $this->response->content,
-            'image' => $this->response->image,
-        ]);
+        $response = factory(Response::class)->create();
+        Response::destroy($response->id);
 
-        $response = Response::first();
-        $response->delete();
+        $user = User::find($response->user_id);
 
-        $result = $this->actingAs($this->user)->json('PATCH', route('responses.update'), [
-            'id' => $response->id,
+        $result = $this->actingAs($user)->json('PATCH', route('responses.update', ['id' => $response->id]), [
             'content' => "updated",
-            'image' => $this->response->image,
+            'image' => $response->image
         ]);
         $result->assertStatus(404);
     }
@@ -118,25 +110,19 @@ class ResponseApiTest extends TestCase
      */
     public function fail_update_different_user()
     {
-        $this->actingAs($this->user)->json('POST', route('responses.create'), [
-            'forum_id' => $this->forum->id,
-            'content' => $this->response->content,
-            'image' => $this->response->image,
+        $response = factory(Response::class)->create();
+        $user = factory(User::class)->create();
+
+        $expected_response = factory(Response::class)->make();
+
+        $result = $this->actingAs($user)->json('PATCH', route('responses.update', ['id' => $response->id]), [
+            'content' => $expected_response->content,
+            'image' => $expected_response->image,
         ]);
-
-        $response = Response::first();
-
-        Auth::logout();
-        $this->user = factory(User::class)->create();
-
-        $result = $this->actingAs($this->user)->json('PATCH', route('responses.update'), [
-            'id' => $response->id,
-            'content' => "updated",
-            'image' => $this->response->image,
-        ]);
+        $updated_response = Response::find($response->id);
 
         $result->assertStatus(401);
-        $this->assertEquals($this->response->content, $response->content);
+        $this->assertEquals($response->content, $updated_response->content);
     }
 
     /**
@@ -145,23 +131,46 @@ class ResponseApiTest extends TestCase
      */
     public function get_response()
     {
-        $this->actingAs($this->user)->json('POST', route('responses.create'), [
-            'forum_id' => $this->forum->id,
-            'content' => $this->response->content,
-            'image' => $this->response->image,
-        ]);
-        $response = Response::first();
-        $result = $this->json('GET', route('responses.get_response', ['response_id' => $response->id]));
+        $response = factory(Response::class)->create();
+        $result = $this->json('GET', route('responses.get_response', ['id' => $response->id]));
         $result
             ->assertStatus(200)
-            ->assertJson([
+            ->assertJsonFragment([
                 'response' =>
                 [
-                    'id' => $response->id,
-                    'content' => $response->content,
-                    'image' => $response->image,
+                    $response
                 ]
             ]);
+    }
+
+    /**
+     * レスポンスに対するリプライを取得する
+     * @test
+     */
+    public function get_replies()
+    {
+        $response = factory(Response::class)->states('get')->create();
+        $replies = factory(Response::class, 3)->states('reply')->create(['response_id' => $response->id]);
+
+        $result = $this->json('GET', route('responses.get_replies', ['id' => $response->id]));
+
+        $expected_json = $replies->map(function ($reply) {
+            return [
+                'id' => $reply->id,
+                'user_id' => $reply->user_id,
+                'forum_id' => $reply->forum_id,
+                'content' => $reply->content,
+                'image' => $reply->image,
+                'response_id' => $reply->response_id,
+                'created_at' => $reply->created_at->format('Y-m-d h:i:s'),
+                'updated_at' => $reply->updated_at->format('Y-m-d H:i:s'),
+            ];
+        })->all();
+
+        $result
+            ->assertStatus(200)
+            ->assertJsonCount(3, "replies")
+            ->assertJsonFragment(["replies" => $expected_json]);
     }
 
     /**
@@ -171,18 +180,27 @@ class ResponseApiTest extends TestCase
     public function get_response_list()
     {
 
-        $result = $this->actingAs($this->user)->json('POST', route('responses.create'), [
-            'forum_id' => $this->forum->id,
-            'content' => $this->response->content,
-            'image' => $this->response->image,
-        ]);
-        $result->assertStatus(201);
+        $responses = factory(Response::class, 3)->states('get')->create();
 
         $result = $this->json('GET', route('responses.list'));
-        $result->assertStatus(200);
-        $result->assertJsonFragment([
-            'content' => $this->response->content,
-        ]);
+        $expected_json = $responses->map(function ($response) {
+            return [
+                'id' => $response->id,
+                'user_id' => $response->user_id,
+                'forum_id' => $response->forum_id,
+                'content' => $response->content,
+                'image' => $response->image,
+                'response_id' => $response->response_id,
+                'created_at' => $response->created_at->format('Y-m-d h:i:s'),
+                'updated_at' => $response->updated_at->format('Y-m-d H:i:s'),
+            ];
+        })->all();
+
+        $result->assertStatus(200)
+            ->assertJsonCount(3, "responses")
+            ->assertJsonFragment([
+                'responses' => $expected_json,
+            ]);
     }
 
     /**
@@ -191,13 +209,9 @@ class ResponseApiTest extends TestCase
      */
     public function success_delete_response()
     {
-        $this->actingAs($this->user)->json('POST', route('responses.create'), [
-            'forum_id' => $this->forum->id,
-            'content' => $this->response->content,
-            'image' => $this->response->image,
-        ]);
-        $response = Response::first();
-        $result = $this->actingAs($this->user)->delete(route('responses.remove', ['response_id' => $response->id]));
+        $response = factory(Response::class)->states('get')->create();
+        $user = User::find($response->user_id);
+        $result = $this->actingAs($user)->delete(route('responses.remove', ['id' => $response->id]));
         $result->assertStatus(204);
     }
 
@@ -207,14 +221,12 @@ class ResponseApiTest extends TestCase
      */
     public function fail_delete_response_table_not_exist()
     {
-        $this->actingAs($this->user)->json('POST', route('responses.create'), [
-            'forum_id' => $this->forum->id,
-            'content' => $this->response->content,
-            'image' => $this->response->image,
-        ]);
-        $response = Response::first();
+        $response = factory(Response::class)->states('get')->create();
+        $user = User::find($response->user_id);
+
         Response::destroy($response->id);
-        $result = $this->actingAs($this->user)->delete(route('responses.remove', ['response_id' => $response->id]));
+
+        $result = $this->actingAs($user)->delete(route('responses.remove', ['id' => $response->id]));
         $result->assertStatus(404);
     }
 
@@ -224,16 +236,8 @@ class ResponseApiTest extends TestCase
      */
     public function fail_delete_response_require_auth()
     {
-        $this->actingAs($this->user)->json('POST', route('responses.create'), [
-            'forum_id' => $this->forum->id,
-            'content' => $this->response->content,
-            'image' => $this->response->image,
-        ]);
-
-        Auth::logout();
-
-        $response = Response::first();
-        $result = $this->delete(route('responses.remove', ['response_id' => $response->id]));
+        $response = factory(Response::class)->states('get')->create();
+        $result = $this->delete(route('responses.remove', ['id' => $response->id]));
         $result->assertStatus(401);
     }
 }

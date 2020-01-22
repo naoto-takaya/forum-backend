@@ -20,6 +20,7 @@ class CreateResponsesTable extends Migration
             $table->unsignedbigInteger('response_id')->nullable();
             $table->text('content');
             $table->string('image', 200)->nullable();
+            $table->integer('sentiment')->nullable();
             $table->timestamps();
 
             $table->foreign('user_id')

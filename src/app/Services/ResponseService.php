@@ -5,16 +5,19 @@ namespace App\Services;
 use App\Http\Requests\ResponseCreateRequest;
 use App\Http\Requests\ResponseUpdateRequest;
 use App\Models\Response\ResponseInterface;
+use App\Services\Comprehend;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ResponseService
 {
     private $response;
+    private $comprehend;
 
-    public function __construct(ResponseInterface $response_interface)
+    public function __construct(ResponseInterface $response_interface, Comprehend $comprehend)
     {
         $this->response = $response_interface;
+        $this->comprehend = $comprehend;
     }
 
     public function get($id)
@@ -44,6 +47,10 @@ class ResponseService
                 $request = new Request($request->all());
                 $request->merge(['image' => $filepath]);
             }
+
+            $sentiment = $this->comprehend->get_sentiment($request->content);
+            $request->merge(['sentiment' => $sentiment]);
+
             $this->response->create($request);
             DB::commit();
             return true;

@@ -14,27 +14,21 @@ $factory->define(Response::class, function (Faker $faker) {
         'content' => $faker->sentence(),
         'user_id' => factory(User::class)->create()->id,
         'response_id' => null,
-        'image' => UploadedFile::fake()->image('photo.jpg')
+        'image' => UploadedFile::fake()->image('photo.jpg'),
     ];
 });
 
 $factory->state(Response::class, 'get',  function (Faker $faker) {
     return [
-        'image' => $faker->sentence()
+        'image' => $faker->sentence(),
+        'sentiment' => rand(1, 4),
     ];
 });
-
 
 $factory->state(Response::class, 'reply',  function (Faker $faker) {
     return [
         'image' => $faker->sentence(),
+        'sentiment' => rand(1, 4),
         'response_id' => factory(Response::class)->create()->id,
-    ];
-});
-
-$factory->state(Response::class, 'reply_to_reply',  function (Faker $faker) {
-    return [
-        'image' => $faker->sentence(),
-        'response_id' => factory(Response::class)->states('reply')->create()->id,
     ];
 });

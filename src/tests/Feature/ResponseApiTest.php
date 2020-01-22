@@ -6,8 +6,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use App\Infrastructure\Response;
 use App\Infrastructure\Forum;
+use App\Services\Comprehend;
 use App\User;
 use Tests\TestCase;
+use \Mockery;
 
 class ResponseApiTest extends TestCase
 {
@@ -26,6 +28,19 @@ class ResponseApiTest extends TestCase
         ]);
         $this->forum = Forum::first();
         $this->response = factory(Response::class)->make();
+        $this->comprehend = Mockery::mock('App\Services\Comprehend');
+    }
+
+    /**
+     * ComprehendのDIを行う
+     */
+    private function di_comprehend()
+    {
+        $this->comprehend
+            ->shouldReceive('get_sentiment')
+            ->with($this->response->content)
+            ->andReturn(rand(1, 4));
+        $this->app->instance('App\Services\Comprehend', $this->comprehend);
     }
 
     /**
@@ -34,6 +49,7 @@ class ResponseApiTest extends TestCase
      */
     public function create_success()
     {
+        $this->di_comprehend();
 
         $response = $this->actingAs($this->user)->json('POST', route('responses.create'), [
             'forum_id' => $this->forum->id,
@@ -53,6 +69,8 @@ class ResponseApiTest extends TestCase
      */
     public function create_require_content()
     {
+        $this->di_comprehend();
+
         $response = $this->actingAs($this->user)->json('POST', route('responses.create'), [
             'forum_id' => $this->forum->id,
             'image' => $this->response->image,
@@ -67,6 +85,8 @@ class ResponseApiTest extends TestCase
      */
     public function success_update_response()
     {
+        $this->di_comprehend();
+
         $response = factory(Response::class)->create();
         $expected_response = factory(Response::class)->create();
 
@@ -92,6 +112,8 @@ class ResponseApiTest extends TestCase
      */
     public function fail_update_not_exsit_record()
     {
+        $this->di_comprehend();
+
         $response = factory(Response::class)->create();
         Response::destroy($response->id);
 
@@ -110,6 +132,8 @@ class ResponseApiTest extends TestCase
      */
     public function fail_update_different_user()
     {
+        $this->di_comprehend();
+
         $response = factory(Response::class)->create();
         $user = factory(User::class)->create();
 
@@ -161,6 +185,7 @@ class ResponseApiTest extends TestCase
                 'forum_id' => $reply->forum_id,
                 'content' => $reply->content,
                 'image' => $reply->image,
+                'sentiment' => $reply->sentiment,
                 'response_id' => $reply->response_id,
                 'created_at' => $reply->created_at->format('Y-m-d h:i:s'),
                 'updated_at' => $reply->updated_at->format('Y-m-d H:i:s'),
@@ -190,6 +215,7 @@ class ResponseApiTest extends TestCase
                 'forum_id' => $response->forum_id,
                 'content' => $response->content,
                 'image' => $response->image,
+                'sentiment' => $response->sentiment,
                 'response_id' => $response->response_id,
                 'created_at' => $response->created_at->format('Y-m-d h:i:s'),
                 'updated_at' => $response->updated_at->format('Y-m-d H:i:s'),

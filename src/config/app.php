@@ -176,6 +176,7 @@ return [
         App\Providers\RouteServiceProvider::class,
 
 
+        App\Providers\ComprehendServiceProvider::class,
         App\Providers\ForumServiceProvider::class,
         App\Providers\ForumRepositoryProvider::class,
         App\Providers\ResponseServiceProvider::class,

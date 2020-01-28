@@ -5,7 +5,6 @@ namespace App\Infrastructure;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
-use App\Infrastructure\Forum;
 use App\User;
 use Vinkla\Hashids\Facades\Hashids;
 
@@ -25,7 +24,6 @@ class Response extends Model
     public function resolveRouteBinding($value): ?Model
     {
         $value = Hashids::connection('response')->decode($value)[0] ?? null;
-
         return $this->where($this->getRouteKeyName(), $value)->first();
     }
 
@@ -44,27 +42,24 @@ class Response extends Model
         return $this->hasMany(Response::class, 'response_id');
     }
 
-    public function get($id)
+    public function get_response($id)
     {
         return Response::find($id);
     }
 
     public function get_replies($id)
     {
-        $response = $this->get($id);
-        $replies = $response->replies()->orderBy('id')->get();
-        return $replies;
+        $response = $this->get_response($id);
+        return $response->replies()->orderBy('id')->get();
     }
 
 
-    public function create($request)
+    public function create_response($request)
     {
-        $request->merge(['user_id' => Auth::id()]);
         Response::fill($request->all())->save();
-        return true;
     }
 
-    public function update($request = [], $options = [])
+    public function update_response($request)
     {
         $response = Response::findOrFail($request->id);
         if ($response->user->id != Auth::id()) {
@@ -74,7 +69,7 @@ class Response extends Model
         return true;
     }
 
-    public function remove($id)
+    public function remove_response($id)
     {
         $response = Response::findOrFail($id);
         if ($response->user->id != Auth::id()) {
@@ -84,8 +79,8 @@ class Response extends Model
         return true;
     }
 
-    public function get_list()
+    public function get_response_list()
     {
-        return  Response::all();
+        return Response::all();
     }
 }

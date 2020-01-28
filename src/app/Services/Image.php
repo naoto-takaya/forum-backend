@@ -2,8 +2,6 @@
 
 namespace App\Services;
 
-require 'vendor/autoload.php';
-
 use Illuminate\Support\Facades\Storage;
 use Aws\Rekognition\RekognitionClient;
 

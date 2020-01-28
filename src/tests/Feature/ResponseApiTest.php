@@ -6,7 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use App\Infrastructure\Response;
 use App\Infrastructure\Forum;
-use App\Services\Comprehend;
+use App\Infrastructure\Notification;
 use App\User;
 use Tests\TestCase;
 use \Mockery;
@@ -15,18 +15,18 @@ class ResponseApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    private $forum;
+    private $user;
+    private $response;
+    private $comprehend;
+
     public function setup(): void
     {
         parent::setUp();
 
         Storage::fake('s3');
-        $this->forum = factory(Forum::class)->make();
+        $this->forum = factory(Forum::class)->create();
         $this->user = factory(User::class)->create();
-        $this->actingAs($this->user)->json('POST', route('forums.create'), [
-            'title' => $this->forum->title,
-            'image' => $this->forum->image,
-        ]);
-        $this->forum = Forum::first();
         $this->response = factory(Response::class)->make();
         $this->comprehend = Mockery::mock('App\Services\Comprehend');
     }
@@ -61,6 +61,27 @@ class ResponseApiTest extends TestCase
         $this->assertEquals($this->response->content, $response->content);
 
         Storage::cloud()->assertExists($response->filename);
+    }
+
+    /**
+     * リプライを作成に成功し、通知が作成される
+     * @test
+     */
+    public function create_reply_and_notification()
+    {
+        $this->di_comprehend();
+        $response = factory(Response::class)->create();
+        $result = $this->actingAs($this->user)->json('POST', route('responses.create'), [
+            'forum_id' => $this->forum->id,
+            'response_id' => $response->id,
+            'content' => $this->response->content,
+            'image' => $this->response->image,
+        ]);
+
+        $result->assertStatus(201);
+        $notification = Notification::first();
+        $this->assertEquals($response->user_id, $notification->user_id);
+        $this->assertEquals(false, $notification->checked);
     }
 
     /**
@@ -110,7 +131,7 @@ class ResponseApiTest extends TestCase
      * 更新に失敗する 更新対象のレコードが存在しない
      * @test
      */
-    public function fail_update_not_exsit_record()
+    public function fail_update_not_exist_record()
     {
         $this->di_comprehend();
 
@@ -161,9 +182,9 @@ class ResponseApiTest extends TestCase
             ->assertStatus(200)
             ->assertJsonFragment([
                 'response' =>
-                [
-                    $response
-                ]
+                    [
+                        $response
+                    ]
             ]);
     }
 
@@ -187,7 +208,7 @@ class ResponseApiTest extends TestCase
                 'image' => $reply->image,
                 'sentiment' => $reply->sentiment,
                 'response_id' => $reply->response_id,
-                'created_at' => $reply->created_at->format('Y-m-d h:i:s'),
+                'created_at' => $reply->created_at->format('Y-m-d H:i:s'),
                 'updated_at' => $reply->updated_at->format('Y-m-d H:i:s'),
             ];
         })->all();
@@ -217,7 +238,7 @@ class ResponseApiTest extends TestCase
                 'image' => $response->image,
                 'sentiment' => $response->sentiment,
                 'response_id' => $response->response_id,
-                'created_at' => $response->created_at->format('Y-m-d h:i:s'),
+                'created_at' => $response->created_at->format('Y-m-d H:i:s'),
                 'updated_at' => $response->updated_at->format('Y-m-d H:i:s'),
             ];
         })->all();

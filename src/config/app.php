@@ -165,6 +165,7 @@ return [
         /*
          * Package Service Providers...
          */
+        Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider::class,
 
         /*
          * Application Service Providers...
@@ -179,6 +180,7 @@ return [
         App\Providers\ComprehendServiceProvider::class,
         App\Providers\ForumServiceProvider::class,
         App\Providers\ForumRepositoryProvider::class,
+        App\Providers\NotificationRepositoryProvider::class,
         App\Providers\ResponseServiceProvider::class,
         App\Providers\ResponseRepositoryProvider::class,
 

@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Route;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
+// health check用エンドポイント
+Route::get('/health_check', 'Controller@health_check')->name('health_check');
 
 // auth
 Route::post('/register', 'Auth\RegisterController@register')->name('register');

@@ -17,7 +17,7 @@ class Comprehend
 
     /**
      * テキストの言語を判定する
-     * @param str $text
+     * @param string $text
      * @return array
      */
     public function get_dominant_language($text)
@@ -39,7 +39,7 @@ class Comprehend
 
     /**
      * テキストの感情分析を行う
-     * @param str $text
+     * @param string $text
      * @return int|null
      */
     public function get_sentiment($text)

@@ -34,3 +34,7 @@ Route::get('/responses', 'ResponseController@list')->name('responses.list');
 Route::post('/responses', 'ResponseController@create')->middleware('auth')->name('responses.create');
 Route::patch('/responses/{id}', 'ResponseController@update')->middleware('auth')->name('responses.update');
 Route::delete('/responses{id}', 'ResponseController@remove')->middleware('auth')->name('responses.remove');
+
+// notificationApi
+Route::get('/notifications', 'NotificationController@list')->middleware('auth')->name('notifications.list');
+Route::put('/notifications', 'NotificationController@checked_notifications')->middleware('auth')->name('notifications.checked');

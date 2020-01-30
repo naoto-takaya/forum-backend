@@ -30,9 +30,8 @@ RUN composer install --no-scripts --no-autoloader
 COPY ./src /var/www/html
 RUN composer dump-autoload
 RUN php artisan clear-compiled
-RUN php artisan optimize
 RUN chmod -R 777 storage &&  chmod -R 777 bootstrap/cache
-RUN php artisan config:cache
+RUN php artisan optimize
 
 COPY ./docker/php-fpm/php.ini /usr/local/etc/php/
 

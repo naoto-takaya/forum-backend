@@ -31,7 +31,8 @@ COPY ./src /var/www/html
 RUN composer dump-autoload
 RUN php artisan clear-compiled
 RUN php artisan optimize
-
+RUN chmod -R 777 storage &&  chmod -R 777 bootstrap/cache
+RUN php artisan config:cache
 
 COPY ./docker/php-fpm/php.ini /usr/local/etc/php/
 

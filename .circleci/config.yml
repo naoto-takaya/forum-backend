@@ -90,6 +90,7 @@ workflows:
           task-definition: '${APP_PREFIX}-db-migration'
           subnet-ids: $SUBNET
           security-group-ids: $SECURITY_GROUP_IDS
+          assign-public-ip: ENABLED
           requires:
             - ecs-deploy
           filters:

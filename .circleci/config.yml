@@ -6,15 +6,15 @@ jobs:
       - image: circleci/php:7.3-fpm
       - image: circleci/mysql:5.7
     environment:
-        - APP_DEBUG: true
-        - APP_ENV: testing
-        - APP_KEY: base64:CxIPfh57UZxLKUojcbA1qc8hHWgR4WCsrdsNG8ibwHE=
-        - DB_CONNECTION: circleci
+      - APP_DEBUG: true
+      - APP_ENV: testing
+      - APP_KEY: base64:CxIPfh57UZxLKUojcbA1qc8hHWgR4WCsrdsNG8ibwHE=
+      - DB_CONNECTION: circleci
     steps:
       - checkout
 
       - run:
-          name: library_setup 
+          name: library_setup
           command: |
             sudo apt-get update && sudo apt-get install -y libpng-dev libjpeg-dev |
             sudo docker-php-ext-configure gd --with-png-dir=/usr/include --with-jpeg-dir=/usr/include  
@@ -29,7 +29,7 @@ jobs:
             - v1-dependencies-
 
       - run:
-          command: composer install -n --prefer-dist  
+          command: composer install -n --prefer-dist
           working_directory: ./src
 
       - save_cache:
@@ -37,7 +37,7 @@ jobs:
           paths:
             - ./src/vendor
 
-      - run: 
+      - run:
           command: php artisan migrate  --database=circleci --force
           working_directory: ./src
 
@@ -81,6 +81,17 @@ workflows:
           service-name: '${APP_PREFIX}-service'
           requires:
             - php_build
+          filters:
+            branches:
+              only: master
+      - aws-ecs/run-task:
+          name: 'fargate_for_migration'
+          cluster: '${APP_PREFIX}-cluster'
+          task-definition: '${APP_PREFIX}-db-migration'
+          subnet-ids: $SUBNET
+          security-group-ids: $SECURITY_GROUP_IDS
+          requires:
+            - ecs-deploy
           filters:
             branches:
               only: master

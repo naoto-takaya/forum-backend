@@ -19,20 +19,21 @@ class CreateResponsesTable extends Migration
             $table->unsignedbigInteger('forum_id');
             $table->unsignedbigInteger('response_id')->nullable();
             $table->text('content');
-            $table->string('image', 200)->nullable();
             $table->integer('sentiment')->nullable();
             $table->timestamps();
 
             $table->foreign('user_id')
                 ->references('id')
-                ->on('users')->onUpdate('cascade');
+                ->on('users')->onUpdate('cascade')
+                ->on('users')->onDelete('no action');
             $table->foreign('forum_id')
                 ->references('id')
                 ->on('forums')->onUpdate('cascade')
-                ->on('forums')->onDelete('cascade');
+                ->on('forums')->onDelete('no action');
             $table->foreign('response_id')
                 ->references('id')
-                ->on('responses')->onUpdate('cascade');
+                ->on('responses')->onUpdate('cascade')
+                ->on('responses')->onDelete('set null');
         });
     }
 

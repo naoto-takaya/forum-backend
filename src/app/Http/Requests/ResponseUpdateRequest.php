@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
 class ResponseUpdateRequest extends FormRequest
@@ -26,13 +26,13 @@ class ResponseUpdateRequest extends FormRequest
     public function rules()
     {
         return [
-            'image' => 'file|mimes:jpg,jpeg,png,gif'
+            'content' => 'required',
         ];
     }
 
     protected function failedValidation(Validator $validator)
     {
-        $response['errors']  = $validator->errors()->toArray();
+        $response['errors'] = $validator->errors()->toArray();
         throw new HttpResponseException(
             response()->json($response, 422)
         );

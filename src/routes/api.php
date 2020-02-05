@@ -24,9 +24,9 @@ Route::put('password/reset/{token}', 'Auth\ResetPasswordController@reset')->name
 
 // forumApi
 Route::get('/forums/{id}', 'ForumController@get_forum')->name('forums.get_forum');
-Route::get('/forums', 'ForumController@list')->name('forums.list');
-Route::post('/forums', 'ForumController@create')->middleware('auth')->name('forums.create');
-Route::patch('/forums{id}', 'ForumController@update')->middleware('auth')->name('forums.update');
+Route::get('/forums', 'ForumController@get_forum_list')->name('forums.list');
+Route::post('/forums', 'ForumController@create_forum')->middleware('auth')->name('forums.create');
+Route::patch('/forums/{id}', 'ForumController@update_forum')->middleware('auth')->name('forums.update');
 Route::delete('/forums/{id}', 'ForumController@remove')->middleware('auth')->name('forums.remove');
 
 // responseApi
@@ -40,3 +40,6 @@ Route::delete('/responses{id}', 'ResponseController@remove')->middleware('auth')
 // notificationApi
 Route::get('/notifications', 'NotificationController@list')->middleware('auth')->name('notifications.list');
 Route::put('/notifications', 'NotificationController@checked_notifications')->middleware('auth')->name('notifications.checked');
+
+// ImageApi
+Route::post('/image_rekognition', 'ImageController@image_rekognition')->middleware('auth')->name('image.rekognition');

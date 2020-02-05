@@ -27,7 +27,6 @@ class ForumRequest extends FormRequest
     {
         return [
             'title' => 'required',
-            'image' => 'file|mimes:jpg,jpeg,png,gif'
         ];
     }
 

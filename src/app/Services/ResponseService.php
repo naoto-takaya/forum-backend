@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Http\Requests\ResponseCreateRequest;
 use App\Http\Requests\ResponseUpdateRequest;
 use App\Models\Response\ResponseInterface;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -13,88 +12,121 @@ class ResponseService
 {
     private $response;
     private $comprehend;
-    private $replies;
 
+    /**
+     * ResponseService constructor.
+     * @param ResponseInterface $response_interface
+     * @param Comprehend $comprehend
+     */
     public function __construct(ResponseInterface $response_interface, Comprehend $comprehend)
     {
         $this->response = $response_interface;
         $this->comprehend = $comprehend;
     }
 
+    /**
+     * 指定したIDのレスポンスを取得する
+     * @param $id
+     * @return mixed
+     */
     public function get($id)
     {
-        $response = $this->response->get_response($id);
-        return $response;
+        return $this->response->get_response($id);
+
     }
 
+    /**
+     * 指定したIDにリプライしたレスポンス一覧を取得する
+     * @param $id
+     * @return mixed
+     */
     public function get_replies($id)
     {
-        $this->replies = $this->response->get_replies($id);
-        return $this->replies;
+        return $this->response->get_replies($id);
     }
 
-
+    /**
+     * レスポンス一覧を取得する
+     * @return mixed
+     */
     public function get_list()
     {
-        $response = $this->response->get_response_list();
-        return $response;
+        return $this->response->get_response_list();
     }
 
-    public function create(ResponseCreateRequest $request)
+    /**
+     * レスポンスの作成
+     * @param ResponseCreateRequest $request
+     * @throws \Exception
+     */
+    public function create_response(ResponseCreateRequest $request)
     {
         DB::beginTransaction();
         try {
-            if ($request->image) {
-                $filepath = Image::image_upload($request->image);
-                $request = new Request($request->all());
-                $request->merge(['image' => $filepath]);
-            }
-
             // Comprehendによる感情分析値をセット
             $sentiment = $this->comprehend->get_sentiment($request->content);
             $request->merge(['sentiment' => $sentiment]);
 
             $request->merge(['user_id' => Auth::id()]);
-            $this->response->create_response($request);
+            $response = $this->response->create_response($request);
+
+            // 画像がアップロードされている場合、DBに保存する
+            if ($request->session()->get('image_name')) {
+                $this->response->create_image($response->id);
+            }
 
             // リプライの場合通知を作成する
-            if ($request->response_id) {
-                $this->response->create_notification_reply($request);
+            if ($response->response_id) {
+                $this->response->create_notification_reply($response->response_id);
             }
 
             DB::commit();
-            return true;
         } catch (\Exception $e) {
             DB::rollback();
-            Image::image_delete($filepath);
             throw $e;
         }
     }
 
-    public function update(ResponseUpdateRequest $request)
+    /**
+     * レスポンスの更新
+     * @param ResponseUpdateRequest $request
+     * @throws \Exception
+     */
+    public function update_response(ResponseUpdateRequest $request)
     {
         DB::beginTransaction();
         try {
-            if ($request->image) {
-                $filepath = Image::image_upload($request->image);
-                $request = new Request($request->all());
-                $request->merge(['image' => $filepath]);
+            // Comprehendによる感情分析値をセット
+            $sentiment = $this->comprehend->get_sentiment($request->content);
+            $request->merge(['sentiment' => $sentiment]);
+
+            $response = $this->response->update_response($request);
+
+            if ($request->session()->get('image_name')) {
+                $this->response->update_image($response->id);
             }
 
-            $this->response->update_response($request);
-
             DB::commit();
-            return true;
         } catch (\Exception $e) {
             DB::rollback();
-            Image::image_delete($filepath);
             throw $e;
         }
     }
 
+    /**
+     * レスポンスの削除
+     * @param $id
+     * @throws \Exception
+     */
     public function remove($id)
     {
-        $response = $this->response->remove_response($id);
-        return $response;
+        DB::beginTransaction();
+        try {
+            $this->response->remove_response($id);
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollback();
+            throw $e;
+        }
     }
 }

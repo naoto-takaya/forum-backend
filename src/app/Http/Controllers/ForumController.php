@@ -7,27 +7,29 @@ use App\Services\ForumService;
 
 class ForumController extends Controller
 {
-    protected   $forum_service;
+    protected $forum_service;
 
-    public  function __construct(ForumService $forum_service)
+    public function __construct(ForumService $forum_service)
     {
-        $this->forum_service =  $forum_service;
+        $this->forum_service = $forum_service;
     }
+
     /**
-     * forumの作成
-     * @return \Illuminate\Http\Response
+     * @param ForumRequest $request
+     * @return \Illuminate\Http\JsonResponse
+     * @throws \Exception
      */
-    protected function create(ForumRequest $request)
+    protected function create_forum(ForumRequest $request)
     {
-        $this->forum_service->create($request);
+        $this->forum_service->create_forum($request);
         return response()
             ->json([], 201);
     }
 
-    protected function update(ForumRequest $request, $id)
+    protected function update_forum(ForumRequest $request, $id)
     {
         $request->merge(['id' => $id]);
-        $this->forum_service->update($request);
+        $this->forum_service->update_forum($request);
         return response()
             ->json([], 204);
     }
@@ -35,9 +37,9 @@ class ForumController extends Controller
     /**
      * forumの一覧取得
      */
-    protected function list()
+    protected function get_forum_list()
     {
-        $forums = $this->forum_service->get_list();
+        $forums = $this->forum_service->get_forum_list();
         return response()
             ->json(['forums' => $forums])
             ->setStatusCode(200);
@@ -45,6 +47,8 @@ class ForumController extends Controller
 
     /**
      * forumの取得
+     * @param $id
+     * @return \Illuminate\Http\JsonResponse
      */
     protected function get_forum($id)
     {

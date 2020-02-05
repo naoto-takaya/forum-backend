@@ -26,15 +26,19 @@ class ResponseCreateRequest extends FormRequest
     public function rules()
     {
         return [
-            'forum_id' => 'required',
+            'forum_id' => 'required|integer',
             'content' => 'required',
-            'image' => 'file|mimes:jpg,jpeg,png,gif'
+            'response_id' => 'integer',
+            'sentiment' => 'null',
+            'user_id' => 'null',
+            'image_response_id' =>  'null',
+            'image_forum_id' =>  'null'
         ];
     }
 
     protected function failedValidation(Validator $validator)
     {
-        $response['errors']  = $validator->errors()->toArray();
+        $response['errors'] = $validator->errors()->toArray();
         throw new HttpResponseException(
             response()->json($response, 422)
         );

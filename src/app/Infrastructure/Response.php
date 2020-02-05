@@ -42,45 +42,84 @@ class Response extends Model
         return $this->hasMany(Response::class, 'response_id');
     }
 
+    public function images()
+    {
+        return $this->hasMany(Image::class);
+    }
+
+    /**
+     * @param $id
+     * @return \Illuminate\Database\Eloquent\Builder|
+     * \Illuminate\Database\Eloquent\Builder[]|
+     * \Illuminate\Database\Eloquent\Collection|
+     * Model|
+     * null
+     */
     public function get_response($id)
     {
-        return Response::find($id);
+        return Response::with(['images'])->find($id);
     }
 
+    /**
+     * @param $id
+     * @return \Illuminate\Database\Eloquent\Builder[]|\Illuminate\Database\Eloquent\Collection
+     */
     public function get_replies($id)
     {
-        $response = $this->get_response($id);
-        return $response->replies()->orderBy('id')->get();
+        return Response::with(['images'])
+            ->where('response_id', '=', $id)
+            ->orderBy('created_at')
+            ->get();
     }
 
 
+    /**
+     * @param $request
+     * @return Response|Model
+     */
     public function create_response($request)
     {
-        Response::fill($request->all())->save();
+        return Response::create($request->all());
     }
 
+    /**
+     * @param $request
+     * @return Response|Response[]|\Illuminate\Database\Eloquent\Collection|Model
+     * @throws AuthenticationException
+     */
     public function update_response($request)
     {
         $response = Response::findOrFail($request->id);
         if ($response->user->id != Auth::id()) {
             throw new AuthenticationException();
         }
+
         $response->fill($request->all())->save();
-        return true;
+        return $response;
     }
 
+    /**
+     * @param $id
+     * @return bool|null
+     * @throws AuthenticationException
+     */
     public function remove_response($id)
     {
         $response = Response::findOrFail($id);
         if ($response->user->id != Auth::id()) {
             throw new AuthenticationException();
         }
-        $response->delete();
-        return true;
+        return $response->delete();
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder[]|
+     * \Illuminate\Database\Eloquent\Collection
+     */
     public function get_response_list()
     {
-        return Response::all();
+        return Response::with(['images'])
+            ->orderBy('created_at')
+            ->get();
     }
 }

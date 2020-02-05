@@ -2,11 +2,10 @@
 
 namespace App\Infrastructure;
 
+use App\User;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
-use App\Infrastructure\Response;
-use App\User;
 use Vinkla\Hashids\Facades\Hashids;
 
 class Forum extends Model
@@ -39,26 +38,39 @@ class Forum extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function images()
+    {
+        return $this->hasMany(Image::class);
+    }
+
     public function get($id)
     {
-        return Forum::find($id);
+        return Forum::with(['images'])->find($id);
     }
 
-    public function create($request)
+    /**
+     * @param $request
+     * @return Forum|Model
+     */
+    public function create_forum($request)
     {
         $request->merge(['user_id' => Auth::id()]);
-        Forum::fill($request->all())->save();
-        return true;
+        return Forum::create($request->all());
     }
 
-    public function update($request = [], $options = [])
+    /**
+     * @param $request
+     * @return Forum|Forum[]|\Illuminate\Database\Eloquent\Collection|Model
+     * @throws AuthenticationException
+     */
+    public function update_forum($request)
     {
         $forum = Forum::findOrFail($request->id);
         if ($forum->user->id != Auth::id()) {
             throw new AuthenticationException();
         }
         $forum->fill($request->all())->save();
-        return true;
+        return $forum;
     }
 
     public function remove($id)
@@ -70,8 +82,11 @@ class Forum extends Model
         $forum->delete();
     }
 
-    public function get_list()
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder[]|\Illuminate\Database\Eloquent\Collection
+     */
+    public function get_forum_list()
     {
-        return  Forum::all();
+        return Forum::with('images')->get();
     }
 }

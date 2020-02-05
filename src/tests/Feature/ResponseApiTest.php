@@ -2,14 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Infrastructure\Forum;
+use App\Infrastructure\Image;
+use App\Infrastructure\Notification;
+use App\Infrastructure\Response;
+use App\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
-use App\Infrastructure\Response;
-use App\Infrastructure\Forum;
-use App\Infrastructure\Notification;
-use App\User;
+use Mockery;
 use Tests\TestCase;
-use \Mockery;
 
 class ResponseApiTest extends TestCase
 {
@@ -27,21 +28,22 @@ class ResponseApiTest extends TestCase
         Storage::fake('s3');
         $this->forum = factory(Forum::class)->create();
         $this->user = factory(User::class)->create();
-        $this->response = factory(Response::class)->make();
+        $this->response = factory(Response::class)->make(['user_id' => $this->user->id]);
         $this->comprehend = Mockery::mock('App\Services\Comprehend');
-    }
 
-    /**
-     * ComprehendのDIを行う
-     */
-    private function di_comprehend()
-    {
         $this->comprehend
             ->shouldReceive('get_sentiment')
-            ->with($this->response->content)
+            ->with(Mockery::any())
             ->andReturn(rand(1, 4));
         $this->app->instance('App\Services\Comprehend', $this->comprehend);
     }
+
+    public function tearDown(): void
+    {
+        parent::tearDown();
+        Mockery::close();
+    }
+
 
     /**
      * レスポンスの作成に成功する
@@ -49,37 +51,45 @@ class ResponseApiTest extends TestCase
      */
     public function create_success()
     {
-        $this->di_comprehend();
 
-        $response = $this->actingAs($this->user)->json('POST', route('responses.create'), [
-            'forum_id' => $this->forum->id,
-            'content' => $this->response->content,
-            'image' => $this->response->image,
-        ]);
-        $response->assertStatus(201);
+        $result = $this->actingAs($this->user)
+            ->withSession(['image_name' => 'sample.png', 'confidence' => 1])
+            ->json('POST', route('responses.create'), [
+                'forum_id' => $this->response->forum_id,
+                'content' => $this->response->content,
+            ]);
         $response = Response::first();
-        $this->assertEquals($this->response->content, $response->content);
+        $images = $response->images()->get();
 
-        Storage::cloud()->assertExists($response->filename);
+        $result->assertStatus(201);
+        $this->assertEquals($this->response->content, $response->content);
+        $this->assertEquals($this->response->forum_id, $response->forum_id);
+        $this->assertEquals($this->response->user_id, $response->user_id);
+        foreach ($images as $image) {
+            $this->assertEquals($response->id, $image->response_id);
+        }
     }
 
     /**
-     * リプライを作成に成功し、通知が作成される
+     * リプライの作成に成功し、通知が作成される
      * @test
      */
     public function create_reply_and_notification()
     {
-        $this->di_comprehend();
         $response = factory(Response::class)->create();
-        $result = $this->actingAs($this->user)->json('POST', route('responses.create'), [
-            'forum_id' => $this->forum->id,
-            'response_id' => $response->id,
-            'content' => $this->response->content,
-            'image' => $this->response->image,
-        ]);
+        $result = $this->actingAs($this->user)
+            ->withSession(['image_name' => 'sample.png', 'confidence' => 1])
+            ->json('POST', route('responses.create'), [
+                'forum_id' => $response->forum_id,
+                'response_id' => $response->id,
+                'content' => $this->response->content,
+            ]);
+
+        $notification = Notification::where('user_id', '=', $response->user_id)->first();
+        $reply_response = Response::where('response_id', '=', $response->id)->first();
 
         $result->assertStatus(201);
-        $notification = Notification::first();
+        $this->assertEquals($response->id, $reply_response->response_id);
         $this->assertEquals($response->user_id, $notification->user_id);
         $this->assertEquals(false, $notification->checked);
     }
@@ -90,14 +100,14 @@ class ResponseApiTest extends TestCase
      */
     public function create_require_content()
     {
-        $this->di_comprehend();
-
-        $response = $this->actingAs($this->user)->json('POST', route('responses.create'), [
-            'forum_id' => $this->forum->id,
-            'image' => $this->response->image,
-        ]);
+        $response = $this->actingAs($this->user)
+            ->withSession(['image_name' => 'sample.png', 'confidence' => 1])
+            ->json('POST', route('responses.create'), [
+                'forum_id' => $this->forum->id,
+            ]);
         $response->assertStatus(422);
         $this->assertEmpty(Response::all());
+        $this->assertEmpty(Image::all());
     }
 
     /**
@@ -106,25 +116,30 @@ class ResponseApiTest extends TestCase
      */
     public function success_update_response()
     {
-        $this->di_comprehend();
 
         $response = factory(Response::class)->create();
+        factory(Image::class)->create(['response_id' => $response->id]);
         $expected_response = factory(Response::class)->create();
 
         $user = User::find($response->user_id);
 
-        $result = $this->actingAs($user)->json('PATCH', route('responses.update', ['id' => $response->id]), [
-            'content' => $expected_response->content,
-            'image' => $expected_response->image,
-        ]);
+        $result = $this->actingAs($user)
+            ->withSession(['image_name' => 'updated.png', 'confidence' => 2])
+            ->json('PATCH', route('responses.update', ['id' => $response->id]), [
+                'content' => $expected_response->content,
+            ]);
 
 
         $updated_response = Response::find($response->id);
+        $updated_images = $updated_response->images()->get();
 
         $result->assertStatus(204);
         $this->assertEquals($expected_response->content, $updated_response->content);
 
-        Storage::cloud()->assertExists($updated_response->image);
+        foreach ($updated_images as $image) {
+            $this->assertEquals($image->name, 'updated.png');
+            $this->assertEquals($image->confidence, 2);
+        }
     }
 
     /**
@@ -133,7 +148,6 @@ class ResponseApiTest extends TestCase
      */
     public function fail_update_not_exist_record()
     {
-        $this->di_comprehend();
 
         $response = factory(Response::class)->create();
         Response::destroy($response->id);
@@ -153,8 +167,6 @@ class ResponseApiTest extends TestCase
      */
     public function fail_update_different_user()
     {
-        $this->di_comprehend();
-
         $response = factory(Response::class)->create();
         $user = factory(User::class)->create();
 
@@ -177,14 +189,15 @@ class ResponseApiTest extends TestCase
     public function get_response()
     {
         $response = factory(Response::class)->create();
+        $images = factory(Image::class)->create(['response_id' => $response->id]);
+        $response->images = [$images->toArray()];
+
         $result = $this->json('GET', route('responses.get_response', ['id' => $response->id]));
         $result
             ->assertStatus(200)
             ->assertJsonFragment([
                 'response' =>
-                    [
-                        $response
-                    ]
+                    $response->toArray()
             ]);
     }
 
@@ -194,29 +207,20 @@ class ResponseApiTest extends TestCase
      */
     public function get_replies()
     {
-        $response = factory(Response::class)->states('get')->create();
+        $response = factory(Response::class)->create();
         $replies = factory(Response::class, 3)->states('reply')->create(['response_id' => $response->id]);
 
-        $result = $this->json('GET', route('responses.get_replies', ['id' => $response->id]));
 
-        $expected_json = $replies->map(function ($reply) {
-            return [
-                'id' => $reply->id,
-                'user_id' => $reply->user_id,
-                'forum_id' => $reply->forum_id,
-                'content' => $reply->content,
-                'image' => $reply->image,
-                'sentiment' => $reply->sentiment,
-                'response_id' => $reply->response_id,
-                'created_at' => $reply->created_at->format('Y-m-d H:i:s'),
-                'updated_at' => $reply->updated_at->format('Y-m-d H:i:s'),
-            ];
-        })->all();
+        $expected_json = $replies->each(function ($reply) {
+            $reply->images = [factory(Image::class)->create(['response_id' => $reply->id])->toArray()];
+        });
+
+        $result = $this->json('GET', route('responses.get_replies', ['id' => $response->id]));
 
         $result
             ->assertStatus(200)
             ->assertJsonCount(3, "replies")
-            ->assertJsonFragment(["replies" => $expected_json]);
+            ->assertJsonFragment(["replies" => $expected_json->toArray()]);
     }
 
     /**
@@ -226,27 +230,18 @@ class ResponseApiTest extends TestCase
     public function get_response_list()
     {
 
-        $responses = factory(Response::class, 3)->states('get')->create();
+        $responses = factory(Response::class, 3)->create();
+
+        $expected_json = $responses->each(function ($response) {
+            $response->images = [factory(Image::class)->create(['response_id' => $response->id])->toArray()];
+        });
 
         $result = $this->json('GET', route('responses.list'));
-        $expected_json = $responses->map(function ($response) {
-            return [
-                'id' => $response->id,
-                'user_id' => $response->user_id,
-                'forum_id' => $response->forum_id,
-                'content' => $response->content,
-                'image' => $response->image,
-                'sentiment' => $response->sentiment,
-                'response_id' => $response->response_id,
-                'created_at' => $response->created_at->format('Y-m-d H:i:s'),
-                'updated_at' => $response->updated_at->format('Y-m-d H:i:s'),
-            ];
-        })->all();
 
         $result->assertStatus(200)
             ->assertJsonCount(3, "responses")
             ->assertJsonFragment([
-                'responses' => $expected_json,
+                'responses' => $expected_json->toArray(),
             ]);
     }
 
@@ -256,10 +251,15 @@ class ResponseApiTest extends TestCase
      */
     public function success_delete_response()
     {
-        $response = factory(Response::class)->states('get')->create();
-        $user = User::find($response->user_id);
-        $result = $this->actingAs($user)->delete(route('responses.remove', ['id' => $response->id]));
+        $response = factory(Response::class)->create(['user_id' => $this->user->id]);
+        $images = factory(Image::class)->create(['response_id' => $response->id]);
+
+        $result = $this->actingAs($this->user)->delete(route('responses.remove', ['id' => $response->id]));
+
         $result->assertStatus(204);
+        $this->assertEmpty(Response::all());
+        $this->assertEmpty(Image::all());
+
     }
 
     /**
@@ -268,12 +268,12 @@ class ResponseApiTest extends TestCase
      */
     public function fail_delete_response_table_not_exist()
     {
-        $response = factory(Response::class)->states('get')->create();
-        $user = User::find($response->user_id);
+        $response = factory(Response::class)->create(['user_id' => $this->user->id]);
+        $images = factory(Image::class)->create(['response_id' => $response->id]);
 
         Response::destroy($response->id);
 
-        $result = $this->actingAs($user)->delete(route('responses.remove', ['id' => $response->id]));
+        $result = $this->actingAs($this->user)->delete(route('responses.remove', ['id' => $response->id]));
         $result->assertStatus(404);
     }
 
@@ -283,8 +283,13 @@ class ResponseApiTest extends TestCase
      */
     public function fail_delete_response_require_auth()
     {
-        $response = factory(Response::class)->states('get')->create();
+        $response = factory(Response::class)->create(['user_id' => $this->user->id]);
+        $images = factory(Image::class)->create(['response_id' => $response->id]);
+
         $result = $this->delete(route('responses.remove', ['id' => $response->id]));
+
         $result->assertStatus(401);
+        $this->assertNotEmpty(Response::find($response->id));
+        $this->assertNotEmpty(Image::find($images->id));
     }
 }

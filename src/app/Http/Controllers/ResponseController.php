@@ -12,16 +12,18 @@ class ResponseController extends Controller
 
     public function __construct(ResponseService $response_service)
     {
-        $this->response_service =  $response_service;
+        $this->response_service = $response_service;
     }
 
     /**
-     * responseの作成
-     * @return \Illuminate\Http\Response
+     * レスポンスの作成
+     * @param ResponseCreateRequest $request
+     * @return \Illuminate\Http\JsonResponse
+     * @throws \Exception
      */
     protected function create(ResponseCreateRequest $request)
     {
-        $this->response_service->create($request);
+        $this->response_service->create_response($request);
         return response()
             ->json([], 201);
     }
@@ -32,7 +34,7 @@ class ResponseController extends Controller
     protected function update(ResponseUpdateRequest $request, $id)
     {
         $request->merge(['id' => $id]);
-        $this->response_service->update($request);
+        $this->response_service->update_response($request);
         return response()
             ->json([], 204);
     }
@@ -60,7 +62,9 @@ class ResponseController extends Controller
     }
 
     /**
-     * responseに対するreplyの取得
+     * リプライの取得
+     * @param $id
+     * @return \Illuminate\Http\JsonResponse
      */
     protected function get_replies($id)
     {

@@ -2,76 +2,95 @@
 
 namespace App\Services;
 
-use App\Models\Forum\ForumInterface;
 use App\Http\Requests\ForumRequest;
-use Illuminate\Http\Request;
+use App\Models\Forum\ForumInterface;
 use Illuminate\Support\Facades\DB;
 
 class ForumService
 {
     private $forum;
 
+    /**
+     * ForumService constructor.
+     * @param ForumInterface $forum_interface
+     */
     public function __construct(ForumInterface $forum_interface)
     {
         $this->forum = $forum_interface;
     }
 
+    /**
+     * 指定したIDのフォーラムを取得
+     * @param $id
+     * @return mixed
+     */
     public function get($id)
     {
-        $forum = $this->forum->get($id);
-        return $forum;
+        return $this->forum->get($id);
     }
 
-    public function get_list()
+    /**
+     * フォーラムの一覧を取得
+     * @return mixed
+     */
+    public function get_forum_list()
     {
-        $forum = $this->forum->get_list();
-        return $forum;
+        return $this->forum->get_forum_list();
     }
 
-    public function create(ForumRequest $request)
+    /**
+     * フォーラムの作成、画像の保存
+     * @param ForumRequest $request
+     * @throws \Exception
+     */
+    public function create_forum(ForumRequest $request)
     {
         DB::beginTransaction();
         try {
-            if ($request->image) {
-                $filepath  = Image::image_upload($request->image);
-                $request = new Request($request->all());
-                $request->merge(['image' => $filepath]);
+            $forum = $this->forum->create_forum($request);
+            if ($request->session()->get('image_name')) {
+                $this->forum->create_image($forum->id);
             }
-            $this->forum->create($request);
             DB::commit();
-            return true;
         } catch (\Exception $e) {
             DB::rollback();
-            Image::image_delete($filepath);
             throw $e;
         }
     }
 
-    public function update(ForumRequest $request)
+    /**
+     * フォーラムの更新、画像の保存
+     * @param ForumRequest $request
+     * @throws \Exception
+     */
+    public function update_forum(ForumRequest $request)
     {
         DB::beginTransaction();
         try {
-            if ($request->image) {
-                $filepath  = Image::image_upload($request->image);
-                $request = new Request($request->all());
-                $request->merge(['image' => $filepath]);
+            $forum = $this->forum->update_forum($request);
+            if ($request->session()->get('image_name')) {
+                $this->forum->update_image($forum->id);
             }
-            $this->forum->update($request);
             DB::commit();
-            return true;
         } catch (\Exception $e) {
             DB::rollback();
-            Image::image_delete($filepath);
             throw $e;
         }
     }
 
+    /**
+     * フォーラムの削除
+     * @param $id
+     * @throws \Exception
+     */
     public function remove($id)
     {
+        DB::beginTransaction();
         try {
-            $forum = $this->forum->remove($id);
-            return $forum;
-        } catch (\Exception  $e) {
+            $this->forum->remove($id);
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollback();
             throw $e;
         }
     }

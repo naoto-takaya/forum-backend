@@ -2,7 +2,6 @@
 
 namespace App\Infrastructure;
 
-use App\Infrastructure\Response;
 use App\Providers\NotificationRepositoryProvider;
 use App\User;
 use Illuminate\Database\Eloquent\Model;
@@ -27,15 +26,15 @@ class Notification extends Model
     }
 
     /**
-     * 通知情報の作成,DBに保存する
-     * @param $request
+     * @param $response_id
      */
-    public function create_notification_reply($request)
+    public function create_notification_reply($response_id)
     {
-        $reply_count = Response::where('response_id', '=', $request->response_id)->count();
-        $notification_user = Response::find($request->response_id)->user_id;
+        $reply_count = Response::where('response_id', '=', $response_id)->count() + 1;
+        $notification_user = Response::find($response_id)->user_id;
         $content = 'あなたの投稿に' . $reply_count . '件の返信がありました';
-        $link = 'forums/' . $request->forum_id . '/' . $request->response_id;
+        // TODO: 通知から遷移先のリンクにアクセスできる
+        $link = '';
 
         Notification::fill([
             'user_id' => $notification_user,

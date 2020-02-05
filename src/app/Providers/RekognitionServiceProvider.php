@@ -2,8 +2,8 @@
 
 namespace App\Providers;
 
-use Aws\Comprehend\ComprehendClient;
 use Illuminate\Support\ServiceProvider;
+use Aws\Rekognition\RekognitionClient;
 
 class ComprehendServiceProvider extends ServiceProvider
 {
@@ -14,9 +14,8 @@ class ComprehendServiceProvider extends ServiceProvider
      */
     public function register()
     {
-
-        $this->app->singleton(ComprehendClient::class, function ($app) {
-            return new ComprehendClient([
+        $this->app->singleton(RekognitionClient::class, function ($app) {
+            return new RekognitionClient([
                 'region' => 'us-east-1',
                 'version' => 'latest',
                 'credentials' => [

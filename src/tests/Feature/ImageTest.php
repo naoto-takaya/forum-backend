@@ -2,56 +2,32 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use App\Services\Image;
+use App\User;
 use Aws\Rekognition\RekognitionClient;
-use App\Infrastructure\Forum;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Mockery;
 use Tests\TestCase;
 
 class ImageTest extends TestCase
 {
+    private $client;
+    private $user;
+
+    use RefreshDatabase;
 
     public function setUp(): void
     {
         parent::setUp();
         Storage::fake('s3');
-        $this->forum = factory(Forum::class)->make();
-    }
-
-    /**
-     * 画像アップロードに成功する
-     * @test
-     */
-    public function success_upload_image_file()
-    {
-        $filepath = Image::image_upload($this->forum->image);
-        Storage::cloud()->assertExists($filepath);
-    }
-
-    /**
-     * 画像削除に成功する
-     * @test
-     */
-    public function success_delete_image_file()
-    {
-        $filepath = Image::image_upload($this->forum->image);
-        Image::image_delete($filepath);
-        Storage::cloud()->assertMissing($filepath);
-    }
-
-    /**
-     * Rekognitionに画像節度を診断させ、Confidenceが返却される
-     * @test
-     */
-    public function rekognition()
-    {
-        $contents = $this->forum->image;
-        $factoryMock = \Mockery::mock('overload:' . RekognitionClient::class);
-        $factoryMock->shouldReceive('detectModerationLabels')
-            ->once()
+        $this->user = factory(User::class)->create();
+        $this->client = Mockery::mock(RekognitionClient::class);
+        $this->client
+            ->shouldReceive('detectModerationLabels')
+            ->with(
+                Mockery::any()
+            )
             ->andReturn([
                 'ModerationLabels' => [
                     [
@@ -59,16 +35,36 @@ class ImageTest extends TestCase
                         'Name' => '<string>',
                         'ParentName' => '<string>',
                     ],
-                    [
-                        'Confidence' => 94.9,
-                        'Name' => '<string>',
-                        'ParentName' => '<string>',
-                    ],
                 ],
                 'ModerationModelVersion' => '<string>',
             ]);
-        $result = Image::rekognition_image($contents);
-        $column = array_column($result['ModerationLabels'], 'Confidence');
-        $this->assertEquals([90, 94.9], $column);
+        $this->app->instance('Aws\Rekognition\RekognitionClient', $this->client);
     }
+
+    public function tearDown(): void
+    {
+        parent::tearDown();
+        Mockery::close();
+    }
+
+    /**
+     * 画像アップロードに成功する
+     * @test
+     */
+    public function success_rekognition_result_session_save()
+    {
+        $response = $this->actingAs($this->user)->json('POST', route('image.rekognition'), [
+            'image' => UploadedFile::fake()->image('photo.png'),
+        ]);
+
+        $response->assertJsonFragment([
+            'confidence' => 90,
+        ]);
+
+        $response->assertSessionHas('confidence', 90);
+        $response->assertSessionHasAll(['image_name']);
+        Storage::cloud()->assertExists(session()->get('image_name'));
+
+    }
+
 }

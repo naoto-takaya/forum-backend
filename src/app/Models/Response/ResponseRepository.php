@@ -5,18 +5,21 @@ namespace App\Models\Response;
 use App\Models\Response\ResponseInterface;
 use App\Infrastructure\Response;
 use App\Infrastructure\Notification;
+use App\Infrastructure\Image;
 use Illuminate\Auth\AuthenticationException;
 
 
 class ResponseRepository implements ResponseInterface
 {
-    protected $response;
-    protected $notification;
+    private $response;
+    private $notification;
+    private $image;
 
-    public function __construct(Response $response, Notification $notification)
+    public function __construct(Response $response, Notification $notification, Image $image)
     {
         $this->response = $response;
         $this->notification = $notification;
+        $this->image = $image;
     }
 
     public function get_response($id)
@@ -36,12 +39,12 @@ class ResponseRepository implements ResponseInterface
 
     public function create_response($request)
     {
-        $this->response->create_response($request);
+        return $this->response->create_response($request);
     }
 
     public function update_response($request)
     {
-        $this->response->update_response($request);
+        return $this->response->update_response($request);
     }
 
     public function remove_response($id)
@@ -49,8 +52,18 @@ class ResponseRepository implements ResponseInterface
         $this->response->remove_response($id);
     }
 
-    public function create_notification_reply($request)
+    public function create_image($response_id)
     {
-        $this->notification->create_notification_reply($request);
+        $this->image->create_response_image($response_id);
+    }
+
+    public function update_image($response_id)
+    {
+        $this->image->update_response_image($response_id);
+    }
+
+    public function create_notification_reply($response_id)
+    {
+        $this->notification->create_notification_reply($response_id);
     }
 }

@@ -5,7 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Aws\Rekognition\RekognitionClient;
 
-class ComprehendServiceProvider extends ServiceProvider
+class RekognitionServiceProvider extends ServiceProvider
 {
     /**
      * Register services.

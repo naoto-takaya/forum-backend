@@ -178,6 +178,7 @@ return [
 
 
         App\Providers\ComprehendServiceProvider::class,
+        App\Providers\RekognitionServiceProvider::class,
         App\Providers\ForumServiceProvider::class,
         App\Providers\ForumRepositoryProvider::class,
         App\Providers\NotificationRepositoryProvider::class,

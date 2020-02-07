@@ -2,11 +2,11 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class ResponseCreateRequest extends FormRequest
+class RekognitionRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -26,13 +26,7 @@ class ResponseCreateRequest extends FormRequest
     public function rules()
     {
         return [
-            'forum_id' => 'required|integer',
-            'content' => 'required',
-            'response_id' => 'integer',
-            'sentiment' => 'null',
-            'user_id' => 'null',
-            'image_response_id' => 'null',
-            'image_forum_id' => 'null'
+            'image' => 'required|image',
         ];
     }
 

@@ -24,12 +24,13 @@ class ImageSharedService
 
     public function rekognition_save($image_file)
     {
-        $filename = md5(uniqid()) . "." . $image_file->extension();
-        Storage::cloud()->putFileAs('', $image_file, $filename, 'public');
+        $file_name = md5(uniqid()) . "." . $image_file->extension();
+        Storage::cloud()->putFileAs('', $image_file, $file_name, 'public');
+        $rekognition_image = Storage::cloud()->get($file_name);
 
         $result = $this->rekognition_client->detectModerationLabels([
             'Image' => [
-                'Bytes' => $image_file,
+                'Bytes' => $rekognition_image,
             ],
             'MinConfidence' => 80,
         ])['ModerationLabels'];
@@ -40,7 +41,7 @@ class ImageSharedService
             }
         }
 
-        session(['image_name' => $filename, 'confidence' => $confidence]);
+        session(['image_name' => $file_name, 'confidence' => $confidence]);
         return $confidence;
     }
 }

@@ -2,10 +2,10 @@
 
 namespace App\Infrastructure;
 
+use App\User;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
-use App\User;
 use Vinkla\Hashids\Facades\Hashids;
 
 class Response extends Model
@@ -57,7 +57,10 @@ class Response extends Model
      */
     public function get_response($id)
     {
-        return Response::with(['images'])->find($id);
+        $response = Response::with(['images'])->find($id);
+        $response->replies_count = $response->replies()->count();
+
+        return $response;
     }
 
     /**
@@ -66,10 +69,15 @@ class Response extends Model
      */
     public function get_replies($id)
     {
-        return Response::with(['images'])
+        $replies = Response::with(['images'])
             ->where('response_id', '=', $id)
             ->orderBy('created_at')
             ->get();
+
+        foreach ($replies as $reply) {
+            $reply->replies_count = $reply->replies()->count();
+        }
+        return $replies;
     }
 
 
@@ -113,13 +121,23 @@ class Response extends Model
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Builder[]|
-     * \Illuminate\Database\Eloquent\Collection
+     * @param $forum_id
+     * @return \Illuminate\Database\Eloquent\Builder[]|\Illuminate\Database\Eloquent\Collection
      */
-    public function get_response_list()
+    public function get_response_list($forum_id)
     {
-        return Response::with(['images'])
+        $responses = Response::with(['images'])
+            ->where('forum_id', '=', $forum_id)
+            ->whereNull('response_id')
             ->orderBy('created_at')
             ->get();
+
+        // レスポンスに対する返信の数を取得
+        foreach ($responses as $response) {
+            $response->replies_count = $response->replies()->count();
+        }
+
+        return $responses;
     }
+
 }

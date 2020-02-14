@@ -42,9 +42,9 @@ class ResponseController extends Controller
     /**
      * responseの一覧取得
      */
-    protected function list()
+    protected function list($forum_id)
     {
-        $responses = $this->response_service->get_list();
+        $responses = $this->response_service->get_list($forum_id);
         return response()
             ->json(['responses' => $responses])
             ->setStatusCode(200);

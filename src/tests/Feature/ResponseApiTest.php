@@ -191,6 +191,7 @@ class ResponseApiTest extends TestCase
         $response = factory(Response::class)->create();
         $images = factory(Image::class)->create(['response_id' => $response->id]);
         $response->images = [$images->toArray()];
+        $response->replies_count = 0;
 
         $result = $this->json('GET', route('responses.get_response', ['id' => $response->id]));
         $result
@@ -213,6 +214,7 @@ class ResponseApiTest extends TestCase
 
         $expected_json = $replies->each(function ($reply) {
             $reply->images = [factory(Image::class)->create(['response_id' => $reply->id])->toArray()];
+            $reply->replies_count = 0;
         });
 
         $result = $this->json('GET', route('responses.get_replies', ['id' => $response->id]));
@@ -230,13 +232,15 @@ class ResponseApiTest extends TestCase
     public function get_response_list()
     {
 
-        $responses = factory(Response::class, 3)->create();
+        $forum = factory(Forum::class)->create();
+        $responses = factory(Response::class, 3)->create(['forum_id'=>$forum->id]);
 
         $expected_json = $responses->each(function ($response) {
             $response->images = [factory(Image::class)->create(['response_id' => $response->id])->toArray()];
+            $response->replies_count = 0;
         });
 
-        $result = $this->json('GET', route('responses.list'));
+        $result = $this->json('GET', route('responses.list', ['forum_id' => $forum->id]));
 
         $result->assertStatus(200)
             ->assertJsonCount(3, "responses")

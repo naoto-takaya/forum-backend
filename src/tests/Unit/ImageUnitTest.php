@@ -2,17 +2,12 @@
 
 namespace Tests\Unit;
 
-use App\Models\Image\ImageRepository;
-use App\Infrastructure\Image;
-use Illuminate\Support\Facades\Storage;
-use Tests\TestCase;
-use Tests\MockImageInterface;
-use Aws\Rekognition\RekognitionClient;
 use App\SharedServices\ImageSharedService;
-use Illuminate\Http\Request;
+use Aws\Rekognition\RekognitionClient;
 use Illuminate\Http\UploadedFile;
-use Faker\Generator as Faker;
-use \Mockery;
+use Illuminate\Support\Facades\Storage;
+use Mockery;
+use Tests\TestCase;
 
 class ImageUnitTest extends TestCase
 {
@@ -24,8 +19,7 @@ class ImageUnitTest extends TestCase
         parent::setUp();
         Storage::fake('s3');
         $this->client = Mockery::mock(RekognitionClient::class);
-        $image_mock_repository = new MockImageRepository();
-        $this->image_shared_service = new ImageSharedService($this->client, $image_mock_repository);
+        $this->image_shared_service = new ImageSharedService($this->client);
     }
 
     public function tearDown(): void
@@ -82,6 +76,3 @@ class ImageUnitTest extends TestCase
     }
 }
 
-class MockImageRepository extends MockImageInterface
-{
-}

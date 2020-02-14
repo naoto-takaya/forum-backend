@@ -32,7 +32,7 @@ Route::delete('/forums/{id}', 'ForumController@remove')->middleware('auth')->nam
 // responseApi
 Route::get('/responses/{id}', 'ResponseController@get_response')->name('responses.get_response');
 Route::get('/responses/{id}/replies', 'ResponseController@get_replies')->name('responses.get_replies');
-Route::get('/responses', 'ResponseController@list')->name('responses.list');
+Route::get('/forums/{forum_id}/responses', 'ResponseController@list')->name('responses.list');
 Route::post('/responses', 'ResponseController@create')->middleware('auth')->name('responses.create');
 Route::patch('/responses/{id}', 'ResponseController@update')->middleware('auth')->name('responses.update');
 Route::delete('/responses{id}', 'ResponseController@remove')->middleware('auth')->name('responses.remove');

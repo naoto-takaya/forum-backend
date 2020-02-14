@@ -9,7 +9,7 @@ interface ResponseInterface
 
     public function get_replies($id);
 
-    public function get_response_list();
+    public function get_response_list($forum_id);
 
     public function create_response($request);
 

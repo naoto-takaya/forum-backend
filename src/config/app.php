@@ -184,8 +184,6 @@ return [
         App\Providers\NotificationRepositoryProvider::class,
         App\Providers\ResponseServiceProvider::class,
         App\Providers\ResponseRepositoryProvider::class,
-        App\Providers\ImageRepositoryProvider::class,
-
     ],
 
     /*

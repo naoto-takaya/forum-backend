@@ -2,26 +2,28 @@
 
 namespace App\SharedServices;
 
-use App\Models\Image\ImageInterface;
 use Aws\Rekognition\RekognitionClient;
 use Illuminate\Support\Facades\Storage;
 
 class ImageSharedService
 {
     private $rekognition_client;
-    private $image_interface;
 
     /**
      * ImageSharedService constructor.
      * @param RekognitionClient $client
-     * @param ImageInterface $image_interface
      */
-    public function __construct(RekognitionClient $client, ImageInterface $image_interface)
+    public function __construct(RekognitionClient $client)
     {
         $this->rekognition_client = $client;
-        $this->image_interface = $image_interface;
     }
 
+    /**
+     * リクエストされた画像に名前をつけて保存し、Rekognitionに査定させ、節度を返却する
+     * @param $image_file
+     * @return int
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     */
     public function rekognition_save($image_file)
     {
         $file_name = md5(uniqid()) . "." . $image_file->extension();

@@ -20,7 +20,6 @@ $factory->define(Response::class, function (Faker $faker) {
 
 $factory->state(Response::class, 'reply', function (Faker $faker) {
     return [
-        'sentiment' => rand(1, 4),
         'response_id' => factory(Response::class)->create()->id,
     ];
 });

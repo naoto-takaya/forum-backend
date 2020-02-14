@@ -47,11 +47,12 @@ class ResponseService
 
     /**
      * レスポンス一覧を取得する
+     * @param $forum_id
      * @return mixed
      */
-    public function get_list()
+    public function get_list($forum_id)
     {
-        return $this->response->get_response_list();
+        return $this->response->get_response_list($forum_id);
     }
 
     /**

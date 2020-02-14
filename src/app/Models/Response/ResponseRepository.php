@@ -2,11 +2,9 @@
 
 namespace App\Models\Response;
 
-use App\Models\Response\ResponseInterface;
-use App\Infrastructure\Response;
-use App\Infrastructure\Notification;
 use App\Infrastructure\Image;
-use Illuminate\Auth\AuthenticationException;
+use App\Infrastructure\Notification;
+use App\Infrastructure\Response;
 
 
 class ResponseRepository implements ResponseInterface
@@ -32,9 +30,9 @@ class ResponseRepository implements ResponseInterface
         return $this->response->get_replies($id);
     }
 
-    public function get_response_list()
+    public function get_response_list($forum_id)
     {
-        return $this->response->get_response_list();
+        return $this->response->get_response_list($forum_id);
     }
 
     public function create_response($request)

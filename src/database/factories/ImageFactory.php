@@ -11,6 +11,7 @@ $factory->define(Image::class, function (Faker $faker) {
         'forum_id' => null,
         'response_id' => null,
         'confidence' => rand(0, 2),
+        'level' => rand(0, 2),
     ];
 });
 

@@ -15,15 +15,32 @@ class ImageController extends Controller
     }
 
     /**
-     * 画像を査定し、sessionにファイル名とconfidenceを保存する
+     * 画像を査定し、sessionにファイル名とlevelを保存する
      * @param RekognitionRequest $request
      * @return \Illuminate\Http\JsonResponse
      * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
-    protected function image_rekognition(RekognitionRequest $request)
+    protected function get_forum_image_level(RekognitionRequest $request)
     {
-        $confidence = $this->image->rekognition_save($request->image);
+        $level = $this->image->rekognition_forum_image($request->image);
         return response()
-            ->json(['confidence' => $confidence], 200);
+            ->json(['level' => $level], 200);
+    }
+
+    protected function get_response_image_level(RekognitionRequest $request)
+    {
+        $level = $this->image->rekognition_response_image($request->image);
+        return response()
+            ->json(['level' => $level], 200);
+    }
+
+    /**
+     * @return \Illuminate\Http\JsonResponse
+     */
+    protected function remove_image_session()
+    {
+        $this->image->remove_image_session();
+        return response()
+            ->json(['message' => 'image session has been removed'], 200);
     }
 }

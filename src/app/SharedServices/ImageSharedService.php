@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\Storage;
 class ImageSharedService
 {
     private $rekognition_client;
+    // 画像の節度から作成されるレベル
+    private const BAN = 0;    // 登録不可
+    private const NORMAL = 1; // 制限なし
+    private const BlUR = 2;   // ぼかしをかけて表示
 
     /**
      * ImageSharedService constructor.
@@ -19,17 +23,87 @@ class ImageSharedService
     }
 
     /**
-     * リクエストされた画像に名前をつけて保存し、Rekognitionに査定させ、節度を返却する
+     * フォーラムの画像を保存後査定し、危険レベルを作成する。
      * @param $image_file
      * @return int
      * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
-    public function rekognition_save($image_file)
+    public function rekognition_forum_image($image_file)
+    {
+        $file_name = $this->upload_and_get_file_name($image_file);
+        $rekognition_image = Storage::cloud()->get($file_name);
+        $confidence = $this->get_confidence($rekognition_image);
+
+        // 危険レベルの査定
+        switch (true) {
+            case $confidence > 90 :
+                return self::BAN;
+                break;
+            default:
+                $level = self::NORMAL;
+                session(['image_name' => $file_name, 'confidence' => $confidence, 'level' => $level]);
+                return $level;
+                break;
+        }
+    }
+
+    /**
+     * レスポンスの画像を保存後査定し、危険レベルを作成する。
+     * @param $image_file
+     * @return int
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     */
+    public function rekognition_response_image($image_file)
+    {
+        $file_name = $this->upload_and_get_file_name($image_file);
+        $rekognition_image = Storage::cloud()->get($file_name);
+        $confidence = $this->get_confidence($rekognition_image);
+
+        session(['image_name' => $file_name, 'confidence' => $confidence]);
+        // 危険レベルの査定
+        switch (true) {
+            case $confidence > 90 :
+                $level = self::BlUR;
+                break;
+            default:
+                $level = self::NORMAL;
+                break;
+        }
+
+        session(['image_name' => $file_name, 'confidence' => $confidence, 'level' => $level]);
+        return $level;
+    }
+
+    /**
+     *  セッションに保存された画像情報を削除する
+     */
+    public function remove_image_session()
+    {
+        session()->forget('image_name');
+        session()->forget('confidence');
+        session()->forget('level');
+    }
+
+    /**
+     * 画像ファイルをS3に保存し、ファイル名を返却する
+     * @param $image_file
+     * @param string $path
+     * @return string
+     */
+    private function upload_and_get_file_name($image_file, $path = '')
     {
         $file_name = md5(uniqid()) . "." . $image_file->extension();
-        Storage::cloud()->putFileAs('', $image_file, $file_name, 'public');
-        $rekognition_image = Storage::cloud()->get($file_name);
+        Storage::cloud()->putFileAs($path, $image_file, $file_name, 'public');
+        return $file_name;
+    }
 
+    /**
+     * Rekognitionで画像査定し、節度を返却する
+     * @param $rekognition_image
+     * @return float
+     */
+    private function get_confidence($rekognition_image)
+    {
         $result = $this->rekognition_client->detectModerationLabels([
             'Image' => [
                 'Bytes' => $rekognition_image,
@@ -42,8 +116,6 @@ class ImageSharedService
                 $confidence = $factor['Confidence'];
             }
         }
-
-        session(['image_name' => $file_name, 'confidence' => $confidence]);
         return $confidence;
     }
 }

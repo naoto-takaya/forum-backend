@@ -42,4 +42,6 @@ Route::get('/notifications', 'NotificationController@list')->middleware('auth')-
 Route::put('/notifications', 'NotificationController@checked_notifications')->middleware('auth')->name('notifications.checked');
 
 // ImageApi
-Route::post('/image_rekognition', 'ImageController@image_rekognition')->middleware('auth')->name('image.rekognition');
+Route::post('/forums/rekognition', 'ImageController@get_forum_image_level')->middleware('auth')->name('rekognition.forums');
+Route::post('/responses/rekognition', 'ImageController@get_response_image_level')->middleware('auth')->name('rekognition.responses');
+Route::delete('/rekognition', 'ImageController@remove_image_session')->middleware('auth')->name('remove.rekognition');

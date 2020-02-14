@@ -29,7 +29,7 @@ class Handler extends ExceptionHandler
     /**
      * Report or log an exception.
      *
-     * @param  \Exception  $exception
+     * @param \Exception $exception
      * @return void
      */
     public function report(Exception $exception)
@@ -40,21 +40,23 @@ class Handler extends ExceptionHandler
     /**
      * Render an exception into an HTTP response.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Exception  $exception
+     * @param \Illuminate\Http\Request $request
+     * @param \Exception $exception
      * @return \Illuminate\Http\Response
      */
     public function render($request, Exception $exception)
     {
         if ($exception instanceof \Illuminate\Auth\AuthenticationException) {
             return response()
-                ->json([], 401);
+                ->json(['error_message' => 'Unauthorized'], 401);
         }
         if ($exception instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
             return response()
-                ->json([], 404);
+                ->json(['error_message' => 'Not Found'], 404);
         }
 
-        return parent::render($request, $exception);
+
+        return response()->json(['error_message' => 'Internal Server Error'], 500);
+//        return parent::render($request, $exception);
     }
 }

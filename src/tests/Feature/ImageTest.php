@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\User;
+use Aws\Command;
+use Aws\Rekognition\Exception\RekognitionException;
 use Aws\Rekognition\RekognitionClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -15,6 +17,11 @@ class ImageTest extends TestCase
     private $client;
     private $user;
 
+    // 画像の節度から作成されるレベル
+    private const BAN = 0;    // 登録不可
+    private const NORMAL = 1; // 制限なし
+    private const BlUR = 2;   // ぼかしをかけて表示
+
     use RefreshDatabase;
 
     public function setUp(): void
@@ -23,22 +30,6 @@ class ImageTest extends TestCase
         Storage::fake('s3');
         $this->user = factory(User::class)->create();
         $this->client = Mockery::mock(RekognitionClient::class);
-        $this->client
-            ->shouldReceive('detectModerationLabels')
-            ->with(
-                Mockery::any()
-            )
-            ->andReturn([
-                'ModerationLabels' => [
-                    [
-                        'Confidence' => 90,
-                        'Name' => '<string>',
-                        'ParentName' => '<string>',
-                    ],
-                ],
-                'ModerationModelVersion' => '<string>',
-            ]);
-        $this->app->instance('Aws\Rekognition\RekognitionClient', $this->client);
     }
 
     public function tearDown(): void
@@ -51,20 +42,91 @@ class ImageTest extends TestCase
      * 画像アップロードに成功する
      * @test
      */
-    public function success_rekognition_result_session_save()
+    public function success_forum_rekognition()
     {
-        $response = $this->actingAs($this->user)->json('POST', route('image.rekognition'), [
+        $this->client
+            ->shouldReceive('detectModerationLabels')
+            ->with(
+                Mockery::any()
+            )
+            ->andReturn([
+                'ModerationLabels' => [
+                    [
+                        'Confidence' => 90,
+                    ],
+                ],
+                'ModerationModelVersion' => '<string>',
+            ]);
+        $this->app->instance('Aws\Rekognition\RekognitionClient', $this->client);
+
+        $response = $this->actingAs($this->user)->json('POST', route('rekognition.forums'), [
             'image' => UploadedFile::fake()->image('photo.png'),
         ]);
 
         $response->assertJsonFragment([
-            'confidence' => 90,
+            'level' => self::NORMAL,
         ]);
 
         $response->assertSessionHas('confidence', 90);
         $response->assertSessionHasAll(['image_name']);
+        $response->assertSessionHasAll(['confidence']);
+        $response->assertSessionHasAll(['level']);
         Storage::cloud()->assertExists(session()->get('image_name'));
-
     }
 
+    /**
+     * @test
+     */
+    public function success_response_rekognition()
+    {
+        $this->client
+            ->shouldReceive('detectModerationLabels')
+            ->with(
+                Mockery::any()
+            )
+            ->andReturn([
+                'ModerationLabels' => [
+                    [
+                        'Confidence' => 90,
+                    ],
+                ],
+                'ModerationModelVersion' => '<string>',
+            ]);
+        $this->app->instance('Aws\Rekognition\RekognitionClient', $this->client);
+
+        $response = $this->actingAs($this->user)->json('POST', route('rekognition.responses'), [
+            'image' => UploadedFile::fake()->image('photo.png'),
+        ]);
+
+        $response->assertJsonFragment([
+            'level' => self::NORMAL,
+        ]);
+
+        $response->assertSessionHas('confidence', 90);
+        $response->assertSessionHasAll(['image_name']);
+        $response->assertSessionHasAll(['confidence']);
+        $response->assertSessionHasAll(['level']);
+        Storage::cloud()->assertExists(session()->get('image_name'));
+    }
+
+    /**
+     * Rekognitionに失敗した場合, セッションへ値が保存されない
+     * @test
+     */
+    public function faile_rekognition()
+    {
+        $this->client
+            ->shouldReceive('detectModerationLabels')
+            ->with(Mockery::any())
+            ->andThrow(new RekognitionException('', new Command('')));
+
+        $this->app->instance('Aws\Rekognition\RekognitionClient', $this->client);
+
+        $response = $this->actingAs($this->user)->json('POST', route('rekognition.responses'), [
+            'image' => UploadedFile::fake()->image('photo.png'),
+        ]);
+        $response
+            ->assertStatus(500)
+            ->assertSessionMissing(['image_name', 'confidence', 'level']);
+    }
 }

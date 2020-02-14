@@ -38,11 +38,11 @@ class Image extends Model
         Image::fill([
             'name' => session()->get('image_name'),
             'confidence' => session()->get('confidence'),
+            'level' => session()->get('level'),
             'response_id' => $response_id,
         ])->save();
-        session()->forget('image_name');
-        session()->forget('confidence');
 
+        $this->remove_image_session();
     }
 
     /**
@@ -53,11 +53,11 @@ class Image extends Model
         Image::fill([
             'name' => session()->get('image_name'),
             'confidence' => session()->get('confidence'),
+            'level' => session()->get('level'),
             'forum_id' => $forum_id
         ])->save();
-        session()->forget('image_name');
-        session()->forget('confidence');
 
+        $this->remove_image_session();
     }
 
     /**
@@ -70,26 +70,46 @@ class Image extends Model
         $image->update([
             'name' => session()->get('image_name'),
             'confidence' => session()->get('confidence'),
+            'level' => session()->get('level'),
         ]);
 
-        session()->forget('image_name');
-        session()->forget('confidence');
+        $this->remove_image_session();
         return $image;
     }
 
+    /**
+     * レスポンスの画像を更新する
+     * @param $response_id
+     */
     public function update_response_image($response_id)
     {
         $images = Image::where('response_id', '=', $response_id);
         $images->update([
             'name' => session()->get('image_name'),
             'confidence' => session()->get('confidence'),
+            'level' => session()->get('level'),
         ]);
-        session()->forget('image_name');
-        session()->forget('confidence');
+        $this->remove_image_session();
     }
 
-    public function remove($id)
+    /**
+     * 指定したIDの画像を削除する
+     * @param $id
+     */
+    public function remove_image($id)
     {
+        $image = Image::find($id);
+        $image->delete();
+    }
+
+    /**
+     *  セッションに保存された画像情報を削除する
+     */
+    public function remove_image_session()
+    {
+        session()->forget('image_name');
+        session()->forget('confidence');
+        session()->forget('level');
     }
 
     /**
@@ -99,6 +119,15 @@ class Image extends Model
     public function get_forum_image($forum_id)
     {
         return Image::where('forum_id', '=', $forum_id)->get();
+    }
+
+    /**
+     * @param $response_id
+     * @return mixed
+     */
+    public function get_response_image($response_id)
+    {
+        return Image::where('response_id', '=', $response_id)->get();
     }
 
 }

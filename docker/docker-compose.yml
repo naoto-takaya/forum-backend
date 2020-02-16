@@ -32,3 +32,11 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
     - 3306:3306
+  mysql_test:
+    image: mysql:5.7
+    container_name: mysql_test
+    volumes:
+      - ./mysql/my.cnf:/etc/mysql/my.cnf:cached
+    environment:
+      MYSQL_ROOT_PASSWORD: 'password'
+      MYSQL_DATABASE: forum_test

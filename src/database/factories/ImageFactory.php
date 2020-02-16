@@ -10,7 +10,7 @@ $factory->define(Image::class, function (Faker $faker) {
         'name' => $faker->sentence(),
         'forum_id' => null,
         'response_id' => null,
-        'confidence' => rand(0, 2),
+        'confidence' => $faker->randomFloat(2, 0, 100),
         'level' => rand(0, 2),
     ];
 });

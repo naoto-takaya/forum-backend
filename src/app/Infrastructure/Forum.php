@@ -83,10 +83,10 @@ class Forum extends Model
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Builder[]|\Illuminate\Database\Eloquent\Collection
+     * @return \Illuminate\Contracts\Pagination\Paginator
      */
     public function get_forum_list()
     {
-        return Forum::with('images')->get();
+        return Forum::with('images')->simplePaginate(10);
     }
 }

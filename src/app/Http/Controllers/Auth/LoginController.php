@@ -45,6 +45,8 @@ class LoginController extends Controller
 
     protected function loggedOut(Request $request)
     {
+
+        $request->session()->regenerateToken();
         return response()->json();
     }
 }

@@ -191,13 +191,38 @@ class ForumApiTest extends TestCase
         });
 
         $response = $this->json('GET', route('forums.list'));
-
         $response
             ->assertStatus(200)
-            ->assertJsonCount(3, "forums")
             ->assertJsonFragment([
-                'forums' => $expected_json->toArray(),
+                'data' => $expected_json->toArray(),
             ]);
+    }
+
+    /**
+     * ページネーションを使ってフォーラムの一覧の取得に成功する
+     * @test
+     */
+    public function get_forum_list_pagination()
+    {
+        $paginate = 10;
+        $forum_record_num = 30;
+        $page_num = $forum_record_num / $paginate;
+        $forums = factory(Forum::class, $forum_record_num)->create();
+        $forums = $forums->each(function ($forum) {
+            $forum->images = [];
+        });
+
+        for ($i = 1; $i < $page_num; $i++) {
+            $expected_json = $forums->slice(($i - 1) * $paginate, $paginate)->values();
+
+            $response = $this->json('GET', route('forums.list'), ['page' => $i]);
+            $response
+                ->assertStatus(200)
+                ->assertJsonFragment([
+                        'data' => $expected_json->toArray(),
+                    ]
+                );
+        }
     }
 
     /**
@@ -227,7 +252,7 @@ class ForumApiTest extends TestCase
         $forum = factory(Forum::class)->create(['user_id' => $this->user->id]);
         Forum::destroy($forum->id);
         $response = $this->actingAs($this->user)->delete(route('forums.remove', ['id' => $forum->id]));
-        $response->assertStatus(404);
+        $response->assertsertStatus(404);
     }
 
     /**

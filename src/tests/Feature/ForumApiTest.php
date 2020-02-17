@@ -252,7 +252,7 @@ class ForumApiTest extends TestCase
         $forum = factory(Forum::class)->create(['user_id' => $this->user->id]);
         Forum::destroy($forum->id);
         $response = $this->actingAs($this->user)->delete(route('forums.remove', ['id' => $forum->id]));
-        $response->assertsertStatus(404);
+        $response->assertStatus(404);
     }
 
     /**

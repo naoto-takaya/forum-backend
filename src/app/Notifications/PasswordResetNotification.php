@@ -43,7 +43,8 @@ class PasswordResetNotification extends Notification
      */
     public function toMail($notifiable)
     {
-        $url = url(env('APP_FRONT_URL') . '/password/reset/' . $this->token);
+//        $url = url(env('APP_FRONT_URL') . '/password/reset/' . $this->token);
+        $url = url(env('APP_FRONT_URL') . route('password.reset',['token' => $this->token, 'email' => $notifiable->getEmailForPasswordReset()],false));
         return (new MailMessage)
             ->subject($this->title)
             ->line('パスワードのリセット申請を受け付けました。下記のリンクからパスワードを再設定してください')

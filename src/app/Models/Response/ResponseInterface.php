@@ -21,5 +21,7 @@ interface ResponseInterface
 
     public function update_image($response_id);
 
+    public function delete_image($response_id);
+
     public function create_notification_reply($response_id);
 }

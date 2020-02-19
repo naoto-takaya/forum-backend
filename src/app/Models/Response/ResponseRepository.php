@@ -60,6 +60,11 @@ class ResponseRepository implements ResponseInterface
         $this->image->update_response_image($response_id);
     }
 
+    public function delete_image($response_id)
+    {
+        $this->image->delete_response_image($response_id);
+    }
+
     public function create_notification_reply($response_id)
     {
         $this->notification->create_notification_reply($response_id);

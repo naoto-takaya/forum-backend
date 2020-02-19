@@ -13,7 +13,8 @@ class Response extends Model
     protected $guarded = [
         'id',
         'created_at',
-        'updated_at'
+        'updated_at',
+        'is_deleted'
     ];
 
     public function getRouteKey(): string
@@ -107,6 +108,7 @@ class Response extends Model
     }
 
     /**
+     * 投稿を削除状態にする
      * @param $id
      * @return bool|null
      * @throws AuthenticationException
@@ -117,7 +119,9 @@ class Response extends Model
         if ($response->user->id != Auth::id()) {
             throw new AuthenticationException();
         }
-        return $response->delete();
+        $response->is_deleted = true;
+        $response->content = 'この投稿は削除されました';
+        return $response->save();
     }
 
     /**

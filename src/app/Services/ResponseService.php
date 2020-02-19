@@ -124,6 +124,7 @@ class ResponseService
         DB::beginTransaction();
         try {
             $this->response->remove_response($id);
+            $this->response->delete_image($id);
             DB::commit();
         } catch (\Exception $e) {
             DB::rollback();

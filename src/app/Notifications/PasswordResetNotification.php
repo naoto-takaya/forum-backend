@@ -27,7 +27,7 @@ class PasswordResetNotification extends Notification
     /**
      * Get the notification's delivery channels.
      *
-     * @param  mixed  $notifiable
+     * @param mixed $notifiable
      * @return array
      */
     public function via($notifiable)
@@ -38,13 +38,12 @@ class PasswordResetNotification extends Notification
     /**
      * Get the mail representation of the notification.
      *
-     * @param  mixed  $notifiable
+     * @param mixed $notifiable
      * @return \Illuminate\Notifications\Messages\MailMessage
      */
     public function toMail($notifiable)
     {
-//        $url = url(env('APP_FRONT_URL') . '/password/reset/' . $this->token);
-        $url = url(env('APP_FRONT_URL') . route('password.reset',['token' => $this->token, 'email' => $notifiable->getEmailForPasswordReset()],false));
+        $url = url(env('APP_FRONT_URL') . '/password/reset/' . $this->token . '?email=' . $notifiable->getEmailForPasswordReset());
         return (new MailMessage)
             ->subject($this->title)
             ->line('パスワードのリセット申請を受け付けました。下記のリンクからパスワードを再設定してください')
@@ -52,7 +51,7 @@ class PasswordResetNotification extends Notification
             ->markdown(
                 'vendor.notifications.email',
                 [
-                    'url' => url('password/reset', $this->token),
+                    'url' => url('password/reset/', $this->token),
                 ]
             );
     }
@@ -60,7 +59,7 @@ class PasswordResetNotification extends Notification
     /**
      * Get the array representation of the notification.
      *
-     * @param  mixed  $notifiable
+     * @param mixed $notifiable
      * @return array
      */
     public function toArray($notifiable)

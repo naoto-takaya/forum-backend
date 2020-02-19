@@ -20,7 +20,7 @@ Route::post('/register', 'Auth\RegisterController@register')->name('register');
 Route::post('/login', 'Auth\LoginController@login')->name('login');
 Route::get('/logout', 'Auth\LoginController@logout')->name('logout');
 Route::post('/password/reset_mail', 'Auth\ForgotPasswordController@sendResetLinkEmail')->name('reset.reset_mail');
-Route::put('password/reset/{token}', 'Auth\ResetPasswordController@reset')->name('password.reset');
+Route::put('/password/reset', 'Auth\ResetPasswordController@reset')->name('password.reset');
 
 // forumApi
 Route::get('/forums/{id}', 'ForumController@get_forum')->name('forums.get_forum');

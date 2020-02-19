@@ -28,7 +28,6 @@ class ResponseCreateRequest extends FormRequest
         return [
             'forum_id' => 'required|integer',
             'content' => 'required',
-            'response_id' => 'integer',
             'sentiment' => 'null',
             'user_id' => 'null',
             'image_response_id' => 'null',

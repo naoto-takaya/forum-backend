@@ -15,7 +15,7 @@ class CreateForumsTable extends Migration
     {
         Schema::create('forums', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->unsignedbigInteger('user_id');
+            $table->unsignedbigInteger('user_id')->nullable();
             $table->text('title');
             $table->timestamps();
 
@@ -23,7 +23,7 @@ class CreateForumsTable extends Migration
                 ->references('id')
                 ->on('users')
                 ->onUpdate('cascade')
-                ->onDelete('no action');
+                ->onDelete('set null');
         });
     }
 

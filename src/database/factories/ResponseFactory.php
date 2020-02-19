@@ -15,6 +15,7 @@ $factory->define(Response::class, function (Faker $faker) {
         'user_id' => factory(User::class)->create()->id,
         'response_id' => null,
         'sentiment' => rand(1, 4),
+        'is_deleted' => 0,
     ];
 });
 

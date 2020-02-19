@@ -233,7 +233,7 @@ class ResponseApiTest extends TestCase
     {
 
         $forum = factory(Forum::class)->create();
-        $responses = factory(Response::class, 3)->create(['forum_id'=>$forum->id]);
+        $responses = factory(Response::class, 3)->create(['forum_id' => $forum->id]);
 
         $expected_json = $responses->each(function ($response) {
             $response->images = [factory(Image::class)->create(['response_id' => $response->id])->toArray()];
@@ -251,17 +251,21 @@ class ResponseApiTest extends TestCase
 
     /**
      * レスポンスの削除に成功する
+     * 投稿内容、is_deletedが削除状態である
      * @test
      */
     public function success_delete_response()
     {
         $response = factory(Response::class)->create(['user_id' => $this->user->id]);
-        $images = factory(Image::class)->create(['response_id' => $response->id]);
+        factory(Image::class)->create(['response_id' => $response->id]);
 
         $result = $this->actingAs($this->user)->delete(route('responses.remove', ['id' => $response->id]));
 
+        $deleted_response = Response::find($response->id);
+
         $result->assertStatus(204);
-        $this->assertEmpty(Response::all());
+        $this->assertEquals('この投稿は削除されました', $deleted_response->content);
+        $this->assertEquals(true, $deleted_response->is_deleted);
         $this->assertEmpty(Image::all());
 
     }

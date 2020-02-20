@@ -24,3 +24,4 @@ $factory->state(Response::class, 'reply', function (Faker $faker) {
         'response_id' => factory(Response::class)->create()->id,
     ];
 });
+

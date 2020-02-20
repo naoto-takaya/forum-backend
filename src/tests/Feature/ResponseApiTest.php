@@ -188,9 +188,10 @@ class ResponseApiTest extends TestCase
      */
     public function get_response()
     {
-        $response = factory(Response::class)->create();
+        $response = factory(Response::class)->create(['user_id' => $this->user->id]);
         $images = factory(Image::class)->create(['response_id' => $response->id]);
         $response->images = [$images->toArray()];
+        $response->user = $this->user->toArray();
         $response->replies_count = 0;
 
         $result = $this->json('GET', route('responses.get_response', ['id' => $response->id]));
@@ -208,13 +209,14 @@ class ResponseApiTest extends TestCase
      */
     public function get_replies()
     {
-        $response = factory(Response::class)->create();
+        $response = factory(Response::class)->create(['user_id' => $this->user]);
         $replies = factory(Response::class, 3)->states('reply')->create(['response_id' => $response->id]);
 
 
         $expected_json = $replies->each(function ($reply) {
             $reply->images = [factory(Image::class)->create(['response_id' => $reply->id])->toArray()];
             $reply->replies_count = 0;
+            $reply->user = User::find($reply->user_id)->toArray();
         });
 
         $result = $this->json('GET', route('responses.get_replies', ['id' => $response->id]));
@@ -238,6 +240,7 @@ class ResponseApiTest extends TestCase
         $expected_json = $responses->each(function ($response) {
             $response->images = [factory(Image::class)->create(['response_id' => $response->id])->toArray()];
             $response->replies_count = 0;
+            $response->user = User::find($response->user_id)->toArray();
         });
 
         $result = $this->json('GET', route('responses.list', ['forum_id' => $forum->id]));

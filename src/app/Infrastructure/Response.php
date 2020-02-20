@@ -58,7 +58,9 @@ class Response extends Model
      */
     public function get_response($id)
     {
-        $response = Response::with(['images'])->find($id);
+        $response = Response::with(['images'])
+            ->with(['user'])
+            ->find($id);
         $response->replies_count = $response->replies()->count();
 
         return $response;
@@ -71,6 +73,7 @@ class Response extends Model
     public function get_replies($id)
     {
         $replies = Response::with(['images'])
+            ->with(['user'])
             ->where('response_id', '=', $id)
             ->orderBy('created_at')
             ->get();
@@ -131,6 +134,7 @@ class Response extends Model
     public function get_response_list($forum_id)
     {
         $responses = Response::with(['images'])
+            ->with(['user'])
             ->where('forum_id', '=', $forum_id)
             ->whereNull('response_id')
             ->orderBy('created_at')

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Infrastructure\Forum;
 use App\Infrastructure\Image;
+use App\Infrastructure\Response;
 use App\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -22,6 +23,11 @@ class ForumApiTest extends TestCase
         Storage::fake('s3');
         $this->user = factory(User::class)->create();
         $this->forum = factory(Forum::class)->make(['user_id' => $this->user]);
+    }
+
+    public function tearDown(): void
+    {
+        parent::tearDown();
     }
 
     /**
@@ -188,13 +194,38 @@ class ForumApiTest extends TestCase
 
         $expected_json = $forums->each(function ($forum) {
             $forum->images = [factory(Image::class)->create(['forum_id' => $forum->id])->toArray()];
+            $forum->user = User::find($forum->user_id)->toArray();
+            $forum->responses_count = 0;
         });
 
         $response = $this->json('GET', route('forums.list'));
+
         $response
             ->assertStatus(200)
             ->assertJsonFragment([
                 'data' => $expected_json->toArray(),
+            ]);
+    }
+
+    /**
+     * フォーム一覧取得時、レスポンスのカウントを取得している
+     * @test
+     */
+    public function get_forum_list_with_responses_count()
+    {
+        $forum = factory(Forum::class)->create();
+        factory(Response::class, 5)->create(['forum_id' => $forum->id]);
+
+        $forum->images = [factory(Image::class)->create(['forum_id' => $forum->id])->toArray()];
+        $forum->user = User::find($forum->user_id)->toArray();
+        $forum->responses_count = 5;
+
+        $response = $this->json('GET', route('forums.list'));
+
+        $response
+            ->assertStatus(200)
+            ->assertJsonFragment([
+                'data' => [$forum->toArray()],
             ]);
     }
 
@@ -210,6 +241,8 @@ class ForumApiTest extends TestCase
         $forums = factory(Forum::class, $forum_record_num)->create();
         $forums = $forums->each(function ($forum) {
             $forum->images = [];
+            $forum->user = User::find($forum->user_id)->toArray();
+            $forum->responses_count = 0;
         });
 
         for ($i = 1; $i < $page_num; $i++) {

@@ -28,7 +28,7 @@ class Forum extends Model
         return $this->where($this->getRouteKeyName(), $value)->first();
     }
 
-    public function response()
+    public function responses()
     {
         return $this->hasMany(Response::class);
     }
@@ -83,10 +83,14 @@ class Forum extends Model
     }
 
     /**
+     * フォーラムの一覧を取得する
      * @return \Illuminate\Contracts\Pagination\Paginator
      */
     public function get_forum_list()
     {
-        return Forum::with('images')->simplePaginate(10);
+        return Forum::with('images')
+            ->with('user')
+            ->withCount('responses')
+            ->simplePaginate(10);
     }
 }

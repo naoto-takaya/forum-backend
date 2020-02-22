@@ -22,9 +22,9 @@ class ImageController extends Controller
      */
     protected function get_forum_image_level(RekognitionRequest $request)
     {
-        $level = $this->image->rekognition_forum_image($request->image);
+        $image_info = $this->image->rekognition_forum_image($request);
         return response()
-            ->json(['level' => $level], 200);
+            ->json(['level' => $image_info['level']], 200);
     }
 
     protected function get_response_image_level(RekognitionRequest $request)

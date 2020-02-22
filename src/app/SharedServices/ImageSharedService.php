@@ -23,28 +23,39 @@ class ImageSharedService
     }
 
     /**
-     * フォーラムの画像を保存後査定し、危険レベルを作成する。
-     * @param $image_file
-     * @return int
+     *
+     * @param $request
+     * @return array
      * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
-    public function rekognition_forum_image($image_file)
+    public function rekognition_forum_image($request)
     {
-        $file_name = $this->upload_and_get_file_name($image_file);
+        $file_name = $this->upload_and_get_file_name($request->image);
         $rekognition_image = Storage::cloud()->get($file_name);
         $confidence = $this->get_confidence($rekognition_image);
 
         // 危険レベルの査定
         switch (true) {
-            case $confidence > 90 :
-                return self::BAN;
+            case $confidence > 90:
+                $level = self::BAN;
                 break;
             default:
                 $level = self::NORMAL;
-                session(['image_name' => $file_name, 'confidence' => $confidence, 'level' => $level]);
-                return $level;
                 break;
         }
+        $request->merge(
+            [
+                'image_name' => $file_name,
+                'confidence' => $confidence,
+                'level' => $level
+            ]
+        );
+
+        return [
+            'image_name' => $file_name,
+            'confidence' => $confidence,
+            'level' => $level
+        ];
     }
 
     /**
@@ -62,26 +73,11 @@ class ImageSharedService
         session(['image_name' => $file_name, 'confidence' => $confidence]);
         // 危険レベルの査定
         switch (true) {
-            case $confidence > 90 :
-                $level = self::BlUR;
-                break;
+            case $confidence > 90:
+                return self::BlUR;
             default:
-                $level = self::NORMAL;
-                break;
+                return self::NORMAL;
         }
-
-        session(['image_name' => $file_name, 'confidence' => $confidence, 'level' => $level]);
-        return $level;
-    }
-
-    /**
-     *  セッションに保存された画像情報を削除する
-     */
-    public function remove_image_session()
-    {
-        session()->forget('image_name');
-        session()->forget('confidence');
-        session()->forget('level');
     }
 
     /**

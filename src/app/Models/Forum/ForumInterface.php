@@ -13,9 +13,9 @@ interface ForumInterface
 
     public function update_forum($request);
 
-    public function create_image($forum_id);
+    public function create_image($request);
 
-    public function update_image($forum_id);
+    public function update_image($request);
 
     public function remove($id);
 }

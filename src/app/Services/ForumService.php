@@ -56,8 +56,10 @@ class ForumService
             if ($request->image) {
                 $request->merge(['forum_id' => $forum->id]);
                 $image_info = $this->image->rekognition_forum_image($request);
-                $request->merge($image_info);
-                $this->forum->create_image($request);
+                if($image_info['level']) {
+                    $request->merge($image_info);
+                    $this->forum->create_image($request);
+                }
             }
             DB::commit();
         } catch (\Exception $e) {
@@ -79,8 +81,10 @@ class ForumService
             if ($request->image) {
                 $request->merge(['forum_id' => $forum->id]);
                 $image_info = $this->image->rekognition_forum_image($request);
-                $request->merge($image_info);
-                $this->forum->update_image($request);
+                if($image_info['level'] !== 0 ) {
+                    $request->merge($image_info);
+                    $this->forum->update_image($request);
+                }
             }
             DB::commit();
         } catch (\Exception $e) {

@@ -46,35 +46,30 @@ class Image extends Model
     }
 
     /**
-     * @param $forum_id
+     * フォーラムの画像情報をDBに保存する
+     * @param $request
      */
-    public function create_forum_image($forum_id)
+    public function create_forum_image($request)
     {
         Image::fill([
-            'name' => session()->get('image_name'),
-            'confidence' => session()->get('confidence'),
-            'level' => session()->get('level'),
-            'forum_id' => $forum_id
+            'name' => $request->image_name,
+            'confidence' => $request->confidence,
+            'level' => $request->level,
+            'forum_id' => $request->forum_id,
         ])->save();
-
-        $this->remove_image_session();
     }
 
     /**
-     * @param $forum_id
-     * @return mixed
+     * @param $request
      */
-    public function update_forum_image($forum_id)
+    public function update_forum_image($request)
     {
-        $image = Image::where('forum_id', '=', $forum_id);
-        $image->update([
-            'name' => session()->get('image_name'),
-            'confidence' => session()->get('confidence'),
-            'level' => session()->get('level'),
-        ]);
-
-        $this->remove_image_session();
-        return $image;
+        Image::fill([
+            'name' => $request->image_name,
+            'confidence' => $request->confidence,
+            'level' => $request->level,
+            'forum_id' => $request->forum_id,
+        ])->save();
     }
 
     /**
@@ -116,7 +111,8 @@ class Image extends Model
      * レスポンスの画像を削除する
      * @param $response_id
      */
-    public function delete_response_image($response_id){
+    public function delete_response_image($response_id)
+    {
         $images = Image::where('response_id', '=', $response_id);
         $images->delete();
     }
@@ -138,5 +134,4 @@ class Image extends Model
     {
         return Image::where('response_id', '=', $response_id)->get();
     }
-
 }

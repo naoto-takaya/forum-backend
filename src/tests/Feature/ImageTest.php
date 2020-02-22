@@ -67,10 +67,6 @@ class ImageTest extends TestCase
             'level' => self::NORMAL,
         ]);
 
-        $response->assertSessionHas('confidence', 90);
-        $response->assertSessionHasAll(['image_name']);
-        $response->assertSessionHasAll(['confidence']);
-        $response->assertSessionHasAll(['level']);
         Storage::cloud()->assertExists(session()->get('image_name'));
     }
 
@@ -102,10 +98,6 @@ class ImageTest extends TestCase
             'level' => self::NORMAL,
         ]);
 
-        $response->assertSessionHas('confidence', 90);
-        $response->assertSessionHasAll(['image_name']);
-        $response->assertSessionHasAll(['confidence']);
-        $response->assertSessionHasAll(['level']);
         Storage::cloud()->assertExists(session()->get('image_name'));
     }
 

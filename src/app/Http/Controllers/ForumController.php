@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ForumRequest;
+use App\Http\Requests\ForumUpdateRequest;
 use App\Services\ForumService;
 
 class ForumController extends Controller
@@ -15,6 +16,7 @@ class ForumController extends Controller
     }
 
     /**
+     * フォーラムの作成を行う
      * @param ForumRequest $request
      * @return \Illuminate\Http\JsonResponse
      * @throws \Exception
@@ -26,7 +28,14 @@ class ForumController extends Controller
             ->json([], 201);
     }
 
-    protected function update_forum(ForumRequest $request, $id)
+    /**
+     * フォーラムの更新を行う
+     * @param $id
+     * @param ForumUpdateRequest $request
+     * @return \Illuminate\Http\JsonResponse
+     * @throws \Exception
+     */
+    protected function update_forum(ForumUpdateRequest $request, $id)
     {
         $request->merge(['id' => $id]);
         $this->forum_service->update_forum($request);

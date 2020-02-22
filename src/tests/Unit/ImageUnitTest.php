@@ -3,10 +3,8 @@
 namespace Tests\Unit;
 
 use App\SharedServices\ImageSharedService;
-use Aws\Command;
-use Aws\Comprehend\Exception\ComprehendException;
-use Aws\Rekognition\Exception\RekognitionException;
 use Aws\Rekognition\RekognitionClient;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Mockery;
@@ -16,6 +14,7 @@ class ImageUnitTest extends TestCase
 {
     private $client;
     private $image_shared_service;
+    private $request;
 
     // 画像の節度から作成されるレベル
     private const BAN = 0;    // 登録不可
@@ -28,6 +27,7 @@ class ImageUnitTest extends TestCase
         Storage::fake('s3');
         $this->client = Mockery::mock(RekognitionClient::class);
         $this->image_shared_service = new ImageSharedService($this->client);
+        $this->request = new FormRequest();
     }
 
     public function tearDown(): void
@@ -58,8 +58,12 @@ class ImageUnitTest extends TestCase
                 'ModerationModelVersion' => '<string>',
             ]);
 
-        $level = $this->image_shared_service->rekognition_forum_image(UploadedFile::fake()->image('photo.png'));
-        $this->assertEquals(self::BAN, $level);
+        $this->request->image = UploadedFile::fake()->image('photo.png');
+        $image_info = $this->image_shared_service->rekognition_forum_image($this->request);
+        $this->assertNotEmpty($image_info['image_name']);
+        $this->assertEquals(self::BAN, $image_info['level']);
+        $this->assertEquals(94.9, $image_info['confidence']);
+        Storage::cloud()->assertExists($image_info['image_name']);
     }
 
     /**
@@ -77,8 +81,11 @@ class ImageUnitTest extends TestCase
                 ],
                 'ModerationModelVersion' => '<string>',
             ]);
-        $level = $this->image_shared_service->rekognition_forum_image(UploadedFile::fake()->image('photo.png'));
-        $this->assertEquals(self::NORMAL, $level);
+        $this->request->image = UploadedFile::fake()->image('photo.png');
+        $image_info = $this->image_shared_service->rekognition_forum_image($this->request);
+        $this->assertNotEmpty($image_info['image_name']);
+        $this->assertEquals(self::NORMAL, $image_info['level']);
+        $this->assertEquals(0, $image_info['confidence']);
     }
 
     /**

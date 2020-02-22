@@ -10,10 +10,9 @@ use Vinkla\Hashids\Facades\Hashids;
 
 class Forum extends Model
 {
-    protected $guarded = [
-        'id',
-        'created_at',
-        'updated_at'
+    protected $fillable =[
+        'title',
+        'user_id'
     ];
 
     public function getRouteKey(): string

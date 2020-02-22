@@ -37,14 +37,14 @@ class ForumRepository implements ForumInterface
         return $this->forum->update_forum($request);
     }
 
-    public function create_image($forum_id)
+    public function create_image($request)
     {
-        return $this->image->create_forum_image($forum_id);
+        return $this->image->create_forum_image($request);
     }
 
-    public function update_image($forum_id)
+    public function update_image($request)
     {
-        return $this->image->update_forum_image($forum_id);
+        return $this->image->update_forum_image($request);
     }
 
     public function remove($id)

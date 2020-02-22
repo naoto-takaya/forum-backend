@@ -5,7 +5,6 @@
 use App\Infrastructure\Response;
 use App\Infrastructure\Forum;
 use App\User;
-use Illuminate\Http\UploadedFile;
 use Faker\Generator as Faker;
 
 $factory->define(Response::class, function (Faker $faker) {

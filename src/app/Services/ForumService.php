@@ -3,20 +3,25 @@
 namespace App\Services;
 
 use App\Http\Requests\ForumRequest;
+use App\Http\Requests\ForumUpdateRequest;
 use App\Models\Forum\ForumInterface;
+use App\SharedServices\ImageSharedService;
 use Illuminate\Support\Facades\DB;
 
 class ForumService
 {
     private $forum;
+    private $image;
 
     /**
      * ForumService constructor.
      * @param ForumInterface $forum_interface
+     * @param ImageSharedService $image_shared_service
      */
-    public function __construct(ForumInterface $forum_interface)
+    public function __construct(ForumInterface $forum_interface, ImageSharedService $image_shared_service)
     {
         $this->forum = $forum_interface;
+        $this->image = $image_shared_service;
     }
 
     /**
@@ -48,8 +53,11 @@ class ForumService
         DB::beginTransaction();
         try {
             $forum = $this->forum->create_forum($request);
-            if ($request->session()->get('image_name')) {
-                $this->forum->create_image($forum->id);
+            if ($request->image) {
+                $request->merge(['forum_id' => $forum->id]);
+                $image_info = $this->image->rekognition_forum_image($request);
+                $request->merge($image_info);
+                $this->forum->create_image($request);
             }
             DB::commit();
         } catch (\Exception $e) {
@@ -60,16 +68,19 @@ class ForumService
 
     /**
      * フォーラムの更新、画像の保存
-     * @param ForumRequest $request
+     * @param ForumUpdateRequest $request
      * @throws \Exception
      */
-    public function update_forum(ForumRequest $request)
+    public function update_forum(ForumUpdateRequest $request)
     {
         DB::beginTransaction();
         try {
             $forum = $this->forum->update_forum($request);
-            if ($request->session()->get('image_name')) {
-                $this->forum->update_image($forum->id);
+            if ($request->image) {
+                $request->merge(['forum_id' => $forum->id]);
+                $image_info = $this->image->rekognition_forum_image($request);
+                $request->merge($image_info);
+                $this->forum->update_image($request);
             }
             DB::commit();
         } catch (\Exception $e) {

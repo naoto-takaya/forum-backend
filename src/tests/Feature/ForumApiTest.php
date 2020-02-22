@@ -7,13 +7,17 @@ use App\Infrastructure\Image;
 use App\Infrastructure\Response;
 use App\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Mockery;
 use Tests\TestCase;
 
 class ForumApiTest extends TestCase
 {
     private $user;
     private $forum;
+    private $image;
+    private $mock_image;
 
     use RefreshDatabase;
 
@@ -23,11 +27,23 @@ class ForumApiTest extends TestCase
         Storage::fake('s3');
         $this->user = factory(User::class)->create();
         $this->forum = factory(Forum::class)->make(['user_id' => $this->user]);
+        $this->image = factory(Image::class)->make();
+        $this->mock_image = Mockery::mock('App\SharedServices\ImageSharedService');
+        $this->mock_image
+            ->shouldReceive('rekognition_forum_image')
+            ->with(Mockery::any())
+            ->andReturn(
+                ['image_name' => $this->image->name,
+                    'confidence' => $this->image->confidence,
+                    'level' => $this->image->level
+                ]);
+        $this->app->instance('App\SharedServices\ImageSharedService', $this->mock_image);
     }
 
     public function tearDown(): void
     {
         parent::tearDown();
+        Mockery::close();
     }
 
     /**
@@ -38,9 +54,9 @@ class ForumApiTest extends TestCase
     {
 
         $response = $this->actingAs($this->user)
-            ->withSession(['image_name' => 'sample.png', 'confidence' => 1])
             ->json('POST', route('forums.create'), [
                 'title' => $this->forum->title,
+                'image'=> UploadedFile::fake()->create('photo.png'),
             ]);
         $response->assertStatus(201);
         $forum = Forum::first();
@@ -51,8 +67,9 @@ class ForumApiTest extends TestCase
 
         foreach ($images as $image) {
             $this->assertEquals($forum->id, $image->forum_id);
-            $this->assertEquals($image->name, 'sample.png');
-            $this->assertEquals($image->confidence, 1);
+            $this->assertEquals($image->name, $this->image->name);
+            $this->assertEquals($image->confidence, $this->image->confidence);
+            $this->assertEquals($image->level, $this->image->level);
         }
     }
 
@@ -92,9 +109,9 @@ class ForumApiTest extends TestCase
         $expected_forum = factory(Forum::class)->make();
 
         $response = $this->actingAs($this->user)
-            ->withSession(['image_name' => 'updated.png', 'confidence' => 2])
             ->json('PATCH', route('forums.update', ['id' => $before_forum->id]), [
                 'title' => $expected_forum->title,
+                'image'=> UploadedFile::fake()->create('photo.png'),
             ]);
 
         $updated_forum = Forum::find($before_forum->id);
@@ -103,9 +120,9 @@ class ForumApiTest extends TestCase
         $response->assertStatus(204);
         $this->assertNotEquals($before_forum->title, $updated_forum->title);
         foreach ($images as $image) {
-            $this->assertEquals($updated_forum->id, $image->forum_id);
-            $this->assertEquals($image->name, 'updated.png');
-            $this->assertEquals($image->confidence, 2);
+            $this->assertEquals($image->name, $this->image->name);
+            $this->assertEquals($image->confidence, $this->image->confidence);
+            $this->assertEquals($image->level, $this->image->level);
         }
     }
 

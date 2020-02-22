@@ -2,11 +2,11 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class ForumRequest extends FormRequest
+class ForumUpdateRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -31,6 +31,9 @@ class ForumRequest extends FormRequest
         ];
     }
 
+    /**
+     * @param Validator $validator
+     */
     protected function failedValidation(Validator $validator)
     {
         $response['errors']  = $validator->errors()->toArray();
@@ -38,4 +41,5 @@ class ForumRequest extends FormRequest
             response()->json($response, 422)
         );
     }
+
 }

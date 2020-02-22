@@ -28,16 +28,6 @@ class ForumApiTest extends TestCase
         $this->user = factory(User::class)->create();
         $this->forum = factory(Forum::class)->make(['user_id' => $this->user]);
         $this->image = factory(Image::class)->make();
-        $this->mock_image = Mockery::mock('App\SharedServices\ImageSharedService');
-        $this->mock_image
-            ->shouldReceive('rekognition_forum_image')
-            ->with(Mockery::any())
-            ->andReturn(
-                ['image_name' => $this->image->name,
-                    'confidence' => $this->image->confidence,
-                    'level' => $this->image->level
-                ]);
-        $this->app->instance('App\SharedServices\ImageSharedService', $this->mock_image);
     }
 
     public function tearDown(): void
@@ -52,6 +42,16 @@ class ForumApiTest extends TestCase
      */
     public function create_success()
     {
+        $this->mock_image = Mockery::mock('App\SharedServices\ImageSharedService');
+        $this->mock_image
+            ->shouldReceive('rekognition_forum_image')
+            ->with(Mockery::any())
+            ->andReturn(
+                ['image_name' => $this->image->name,
+                    'confidence' => $this->image->confidence,
+                    'level' => $this->image->level
+                ]);
+        $this->app->instance('App\SharedServices\ImageSharedService', $this->mock_image);
 
         $response = $this->actingAs($this->user)
             ->json('POST', route('forums.create'), [
@@ -71,6 +71,37 @@ class ForumApiTest extends TestCase
             $this->assertEquals($image->confidence, $this->image->confidence);
             $this->assertEquals($image->level, $this->image->level);
         }
+    }
+
+    /**
+     * フォーラムに添付した画像がRekognitionによって投稿不可となった場合、DBに保存されない
+     * @test
+     */
+    public function create_success_no_image(){
+
+        $this->mock_image = Mockery::mock('App\SharedServices\ImageSharedService');
+        $this->mock_image
+            ->shouldReceive('rekognition_forum_image')
+            ->with(Mockery::any())
+            ->andReturn(
+                ['image_name' => $this->image->name,
+                    'confidence' => 95,
+                    'level' => 0,
+                ]);
+        $this->app->instance('App\SharedServices\ImageSharedService', $this->mock_image);
+
+        $response = $this->actingAs($this->user)
+            ->json('POST', route('forums.create'), [
+                'title' => $this->forum->title,
+                'image'=> UploadedFile::fake()->create('photo.png'),
+            ]);
+
+        $forum = Forum::first();
+        $images = $forum->images()->get();
+
+        $response->assertStatus(201);
+        $this->assertEmpty($images);
+
     }
 
     /**
@@ -104,6 +135,16 @@ class ForumApiTest extends TestCase
      */
     public function success_update_forum()
     {
+        $this->mock_image = Mockery::mock('App\SharedServices\ImageSharedService');
+        $this->mock_image
+            ->shouldReceive('rekognition_forum_image')
+            ->with(Mockery::any())
+            ->andReturn(
+                ['image_name' => $this->image->name,
+                    'confidence' => $this->image->confidence,
+                    'level' => $this->image->level
+                ]);
+        $this->app->instance('App\SharedServices\ImageSharedService', $this->mock_image);
 
         $before_forum = factory(Forum::class)->create(['user_id' => $this->user->id]);
         $expected_forum = factory(Forum::class)->make();
@@ -124,6 +165,38 @@ class ForumApiTest extends TestCase
             $this->assertEquals($image->confidence, $this->image->confidence);
             $this->assertEquals($image->level, $this->image->level);
         }
+    }
+
+    /**
+     * @test
+     */
+    public function success_update_no_image(){
+        $this->mock_image = Mockery::mock('App\SharedServices\ImageSharedService');
+        $this->mock_image
+            ->shouldReceive('rekognition_forum_image')
+            ->with(Mockery::any())
+            ->andReturn(
+                ['image_name' => $this->image->name,
+                    'confidence' => 95,
+                    'level' => 0,
+                ]);
+        $this->app->instance('App\SharedServices\ImageSharedService', $this->mock_image);
+
+        $before_forum = factory(Forum::class)->create(['user_id' => $this->user->id]);
+        $expected_forum = factory(Forum::class)->make();
+
+        $response = $this->actingAs($this->user)
+            ->json('PATCH', route('forums.update', ['id' => $before_forum->id]), [
+                'title' => $expected_forum->title,
+                'image'=> UploadedFile::fake()->create('photo.png'),
+            ]);
+
+        $updated_forum = Forum::find($before_forum->id);
+        $images = $updated_forum->images()->get();
+
+        $response->assertStatus(204);
+        $this->assertEmpty($images);
+
     }
 
     /**

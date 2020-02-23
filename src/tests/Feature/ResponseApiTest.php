@@ -177,6 +177,57 @@ class ResponseApiTest extends TestCase
     }
 
     /**
+     * 画像添付したレスポンスを画像なしで更新した場合、画像が削除される
+     * @test
+     */
+    public function succes_update_without_image(){
+
+        $before_update_response = factory(Response::class)->create(['user_id'=>$this->user->id]);
+        factory(Image::class)->create(['response_id' =>$before_update_response->id]);
+
+        $expected_response = factory(Response::class)->make();
+
+
+        $result = $this->actingAs($this->user)
+            ->json('PATCH', route('responses.update', ['id' => $before_update_response->id]), [
+                'content' => $expected_response->content,
+            ]);
+
+        $updated_response = Response::find($before_update_response->id);
+        $images = $updated_response->images()->get();
+
+        $result->assertStatus(204);
+        $this->assertEquals($expected_response->content, $updated_response->content);
+        $this->assertEmpty($images);
+
+    }
+
+    /**
+     * 画像保存していないレスポンスを画像なしで更新した場合、画像なしで保存される
+     * @test
+     */
+    public function succes_update_without_image_to_without_image(){
+
+        $before_update_response = factory(Response::class)->create(['user_id'=>$this->user->id]);
+
+        $expected_response = factory(Response::class)->make();
+
+
+        $result = $this->actingAs($this->user)
+            ->json('PATCH', route('responses.update', ['id' => $before_update_response->id]), [
+                'content' => $expected_response->content,
+            ]);
+
+        $updated_response = Response::find($before_update_response->id);
+        $images = $updated_response->images()->get();
+
+        $result->assertStatus(204);
+        $this->assertEquals($expected_response->content, $updated_response->content);
+        $this->assertEmpty($images);
+
+    }
+
+    /**
      * 更新に失敗する 更新対象のレコードが存在しない
      * @test
      */

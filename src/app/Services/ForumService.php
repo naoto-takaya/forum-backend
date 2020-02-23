@@ -56,7 +56,7 @@ class ForumService
             if ($request->image) {
                 $request->merge(['forum_id' => $forum->id]);
                 $image_info = $this->image->rekognition_forum_image($request);
-                if($image_info['level']) {
+                if ($image_info['level']) {
                     $request->merge($image_info);
                     $this->forum->create_image($request);
                 }
@@ -78,13 +78,15 @@ class ForumService
         DB::beginTransaction();
         try {
             $forum = $this->forum->update_forum($request);
+            $request->merge(['forum_id' => $forum->id]);
             if ($request->image) {
-                $request->merge(['forum_id' => $forum->id]);
                 $image_info = $this->image->rekognition_forum_image($request);
-                if($image_info['level'] !== 0 ) {
+                if ($image_info['level'] !== 0) {
                     $request->merge($image_info);
                     $this->forum->update_image($request);
                 }
+            }else{
+                $this->forum->delete_image($forum->id);
             }
             DB::commit();
         } catch (\Exception $e) {

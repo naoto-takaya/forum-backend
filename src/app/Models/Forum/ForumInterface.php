@@ -17,5 +17,7 @@ interface ForumInterface
 
     public function update_image($request);
 
+    public function delete_image($forum_id);
+
     public function remove($id);
 }

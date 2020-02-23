@@ -109,15 +109,15 @@ class ResponseService
             $request->merge(['sentiment' => $sentiment]);
 
             $response = $this->response->update_response($request);
-
-            // 画像がアップロードされている場合、DBに保存する
+            $request->merge(['id' => $response->id]);
+            // 画像がアップロードされている場合、DBを更新する
             if ($request->image) {
-                $request->merge(['id' => $response->id]);
                 $image_info = $this->image->rekognition_response_image($request);
                 $request->merge($image_info);
                 $this->response->update_image($request);
+            } else {
+                $this->response->delete_image($response->id);
             }
-
             DB::commit();
         } catch (\Exception $e) {
             DB::rollback();

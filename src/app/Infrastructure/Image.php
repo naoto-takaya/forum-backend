@@ -108,6 +108,16 @@ class Image extends Model
     }
 
     /**
+     * レスポンスの画像を削除する
+     * @param $request
+     */
+    public function delete_forum_image($forum_id)
+    {
+        $images = Image::where('forum_id', '=', $forum_id);
+        $images->delete();
+    }
+
+    /**
      * @param $forum_id
      * @return mixed
      */

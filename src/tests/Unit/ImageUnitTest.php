@@ -28,6 +28,7 @@ class ImageUnitTest extends TestCase
         $this->client = Mockery::mock(RekognitionClient::class);
         $this->image_shared_service = new ImageSharedService($this->client);
         $this->request = new FormRequest();
+        $this->request->image = UploadedFile::fake()->image('photo.png');
     }
 
     public function tearDown(): void
@@ -57,8 +58,6 @@ class ImageUnitTest extends TestCase
                 ],
                 'ModerationModelVersion' => '<string>',
             ]);
-
-        $this->request->image = UploadedFile::fake()->image('photo.png');
         $image_info = $this->image_shared_service->rekognition_forum_image($this->request);
         $this->assertNotEmpty($image_info['image_name']);
         $this->assertEquals(self::BAN, $image_info['level']);
@@ -81,7 +80,6 @@ class ImageUnitTest extends TestCase
                 ],
                 'ModerationModelVersion' => '<string>',
             ]);
-        $this->request->image = UploadedFile::fake()->image('photo.png');
         $image_info = $this->image_shared_service->rekognition_forum_image($this->request);
         $this->assertNotEmpty($image_info['image_name']);
         $this->assertEquals(self::NORMAL, $image_info['level']);
@@ -100,12 +98,16 @@ class ImageUnitTest extends TestCase
             )
             ->andReturn([
                 'ModerationLabels' => [
-                    'Confidence' => 90,
+                    [
+                        'Confidence' => 90,
+                    ]
                 ],
                 'ModerationModelVersion' => '<string>',
             ]);
-        $level = $this->image_shared_service->rekognition_response_image(UploadedFile::fake()->image('photo.png'));
-        $this->assertEquals(self::NORMAL, $level);
+        $image_info = $this->image_shared_service->rekognition_response_image($this->request->image);
+        $this->assertNotEmpty($image_info['image_name']);
+        $this->assertEquals(self::NORMAL, $image_info['level']);
+        $this->assertEquals(90, $image_info['confidence']);
     }
 
     /**
@@ -126,8 +128,10 @@ class ImageUnitTest extends TestCase
                 ],
                 'ModerationModelVersion' => '<string>',
             ]);
-        $level = $this->image_shared_service->rekognition_response_image(UploadedFile::fake()->image('photo.png'));
-        $this->assertEquals(self::BlUR, $level);
+        $image_info = $this->image_shared_service->rekognition_response_image($this->request->image);
+        $this->assertNotEmpty($image_info['image_name']);
+        $this->assertEquals(self::BlUR, $image_info['level']);
+        $this->assertEquals(90.1, $image_info['confidence']);
     }
 }
 

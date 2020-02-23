@@ -17,9 +17,9 @@ interface ResponseInterface
 
     public function remove_response($id);
 
-    public function create_image($response_id);
+    public function create_image($request);
 
-    public function update_image($response_id);
+    public function update_image($request);
 
     public function delete_image($response_id);
 

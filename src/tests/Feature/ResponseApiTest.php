@@ -19,6 +19,8 @@ class ResponseApiTest extends TestCase
     private $forum;
     private $user;
     private $response;
+    private $image;
+    private $mock_image;
     private $comprehend;
 
     public function setup(): void
@@ -29,6 +31,7 @@ class ResponseApiTest extends TestCase
         $this->forum = factory(Forum::class)->create();
         $this->user = factory(User::class)->create();
         $this->response = factory(Response::class)->make(['user_id' => $this->user->id]);
+        $this->image = factory(Image::class)->make();
         $this->comprehend = Mockery::mock('App\Services\Comprehend');
 
         $this->comprehend
@@ -52,11 +55,23 @@ class ResponseApiTest extends TestCase
     public function create_success()
     {
 
+        $mock_image = Mockery::mock('App\SharedServices\ImageSharedService');
+        $mock_image
+            ->shouldReceive('rekognition_response_image')
+            ->with(Mockery::any())
+            ->andReturn(
+                ['image_name' => $this->image->name,
+                    'confidence' => $this->image->confidence,
+                    'level' => $this->image->level
+                ]);
+        $this->app->instance('App\SharedServices\ImageSharedService', $mock_image);
+
+
         $result = $this->actingAs($this->user)
-            ->withSession(['image_name' => 'sample.png', 'confidence' => 1])
             ->json('POST', route('responses.create'), [
                 'forum_id' => $this->response->forum_id,
                 'content' => $this->response->content,
+                'image' => $this->image,
             ]);
         $response = Response::first();
         $images = $response->images()->get();
@@ -65,8 +80,13 @@ class ResponseApiTest extends TestCase
         $this->assertEquals($this->response->content, $response->content);
         $this->assertEquals($this->response->forum_id, $response->forum_id);
         $this->assertEquals($this->response->user_id, $response->user_id);
+
+        $this->assertNotEmpty($images);
         foreach ($images as $image) {
             $this->assertEquals($response->id, $image->response_id);
+            $this->assertEquals($image->name, $this->image->name);
+            $this->assertEquals($image->confidence, $this->image->confidence);
+            $this->assertEquals($image->level, $this->image->level);
         }
     }
 
@@ -116,29 +136,43 @@ class ResponseApiTest extends TestCase
      */
     public function success_update_response()
     {
+        $this->mock_image = Mockery::mock('App\SharedServices\ImageSharedService');
+        $this->mock_image
+            ->shouldReceive('rekognition_response_image')
+            ->with(Mockery::any())
+            ->andReturn(
+                ['image_name' => $this->image->name,
+                    'confidence' => $this->image->confidence,
+                    'level' => $this->image->level
+                ]);
+        $this->app->instance('App\SharedServices\ImageSharedService', $this->mock_image);
 
-        $response = factory(Response::class)->create();
-        factory(Image::class)->create(['response_id' => $response->id]);
-        $expected_response = factory(Response::class)->create();
 
-        $user = User::find($response->user_id);
+        $before_update_response = factory(Response::class)->create(['user_id'=>$this->user->id]);
+        factory(Image::class)->create(['response_id' =>$before_update_response->id]);
 
-        $result = $this->actingAs($user)
-            ->withSession(['image_name' => 'updated.png', 'confidence' => 2])
-            ->json('PATCH', route('responses.update', ['id' => $response->id]), [
+        $expected_response = factory(Response::class)->make();
+
+
+        $result = $this->actingAs($this->user)
+            ->json('PATCH', route('responses.update', ['id' => $before_update_response->id]), [
                 'content' => $expected_response->content,
+                'image' => $this->image
             ]);
 
 
-        $updated_response = Response::find($response->id);
+        $updated_response = Response::find($before_update_response->id);
         $updated_images = $updated_response->images()->get();
 
         $result->assertStatus(204);
         $this->assertEquals($expected_response->content, $updated_response->content);
 
+        $this->assertNotEmpty($updated_images);
         foreach ($updated_images as $image) {
-            $this->assertEquals($image->name, 'updated.png');
-            $this->assertEquals($image->confidence, 2);
+            $this->assertEquals($before_update_response->id, $image->response_id);
+            $this->assertEquals($image->name, $this->image->name);
+            $this->assertEquals($image->confidence, $this->image->confidence);
+            $this->assertEquals($image->level, $this->image->level);
         }
     }
 

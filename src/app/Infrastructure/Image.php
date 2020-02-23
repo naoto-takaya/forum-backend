@@ -31,18 +31,17 @@ class Image extends Model
     }
 
     /**
-     * @param $response_id
+     * レスポンスの画像を保存する
+     * @param $request
      */
-    public function create_response_image($response_id)
+    public function create_response_image($request)
     {
         Image::fill([
-            'name' => session()->get('image_name'),
-            'confidence' => session()->get('confidence'),
-            'level' => session()->get('level'),
-            'response_id' => $response_id,
+            'name' => $request->image_name,
+            'confidence' => $request->confidence,
+            'level' => $request->level,
+            'response_id' => $request->id,
         ])->save();
-
-        $this->remove_image_session();
     }
 
     /**
@@ -60,31 +59,31 @@ class Image extends Model
     }
 
     /**
+     * フォーラムの画像を更新する
      * @param $request
      */
     public function update_forum_image($request)
     {
-        Image::fill([
+        $image = Image::where('forum_id', '=', $request->forum_id);
+        $image->update([
             'name' => $request->image_name,
             'confidence' => $request->confidence,
             'level' => $request->level,
-            'forum_id' => $request->forum_id,
-        ])->save();
+        ]);
     }
 
     /**
      * レスポンスの画像を更新する
-     * @param $response_id
+     * @param $request
      */
-    public function update_response_image($response_id)
+    public function update_response_image($request)
     {
-        $images = Image::where('response_id', '=', $response_id);
+        $images = Image::where('response_id', '=', $request->id);
         $images->update([
-            'name' => session()->get('image_name'),
-            'confidence' => session()->get('confidence'),
-            'level' => session()->get('level'),
+            'name' => $request->image_name,
+            'confidence' => $request->confidence,
+            'level' => $request->level,
         ]);
-        $this->remove_image_session();
     }
 
     /**
@@ -97,15 +96,6 @@ class Image extends Model
         $image->delete();
     }
 
-    /**
-     *  セッションに保存された画像情報を削除する
-     */
-    public function remove_image_session()
-    {
-        session()->forget('image_name');
-        session()->forget('confidence');
-        session()->forget('level');
-    }
 
     /**
      * レスポンスの画像を削除する

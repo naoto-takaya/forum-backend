@@ -23,7 +23,7 @@ class ImageSharedService
     }
 
     /**
-     *
+     * フォーラムに添付された画像を査定し、基準値によってレベルを分けて保存する
      * @param $request
      * @return array
      * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
@@ -43,13 +43,6 @@ class ImageSharedService
                 $level = self::NORMAL;
                 break;
         }
-        $request->merge(
-            [
-                'image_name' => $file_name,
-                'confidence' => $confidence,
-                'level' => $level
-            ]
-        );
 
         return [
             'image_name' => $file_name,
@@ -59,26 +52,34 @@ class ImageSharedService
     }
 
     /**
-     * レスポンスの画像を保存後査定し、危険レベルを作成する。
-     * @param $image_file
-     * @return int
+     * レスポンスに添付された画像を査定し、基準値によってレベルを分けて保存する
+     * @param $request
+     * @return array|int
      * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
-    public function rekognition_response_image($image_file)
+    public function rekognition_response_image($request)
     {
-        $file_name = $this->upload_and_get_file_name($image_file);
+        $file_name = $this->upload_and_get_file_name($request);
         $rekognition_image = Storage::cloud()->get($file_name);
         $confidence = $this->get_confidence($rekognition_image);
 
-        session(['image_name' => $file_name, 'confidence' => $confidence]);
         // 危険レベルの査定
         switch (true) {
             case $confidence > 90:
-                return self::BlUR;
+                $level = self::BlUR;
+                break;
             default:
-                return self::NORMAL;
+                $level = self::NORMAL;
+                break;
         }
+
+        return [
+            'image_name' => $file_name,
+            'confidence' => $confidence,
+            'level' => $level
+        ];
     }
+
 
     /**
      * 画像ファイルをS3に保存し、ファイル名を返却する

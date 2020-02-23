@@ -56,7 +56,7 @@ class ForumApiTest extends TestCase
         $response = $this->actingAs($this->user)
             ->json('POST', route('forums.create'), [
                 'title' => $this->forum->title,
-                'image'=> UploadedFile::fake()->create('photo.png'),
+                'image' => UploadedFile::fake()->create('photo.png'),
             ]);
         $response->assertStatus(201);
         $forum = Forum::first();
@@ -77,7 +77,8 @@ class ForumApiTest extends TestCase
      * フォーラムに添付した画像がRekognitionによって投稿不可となった場合、DBに保存されない
      * @test
      */
-    public function create_success_no_image(){
+    public function create_success_no_image()
+    {
 
         $this->mock_image = Mockery::mock('App\SharedServices\ImageSharedService');
         $this->mock_image
@@ -93,7 +94,7 @@ class ForumApiTest extends TestCase
         $response = $this->actingAs($this->user)
             ->json('POST', route('forums.create'), [
                 'title' => $this->forum->title,
-                'image'=> UploadedFile::fake()->create('photo.png'),
+                'image' => UploadedFile::fake()->create('photo.png'),
             ]);
 
         $forum = Forum::first();
@@ -152,7 +153,7 @@ class ForumApiTest extends TestCase
         $response = $this->actingAs($this->user)
             ->json('PATCH', route('forums.update', ['id' => $before_forum->id]), [
                 'title' => $expected_forum->title,
-                'image'=> UploadedFile::fake()->create('photo.png'),
+                'image' => UploadedFile::fake()->create('photo.png'),
             ]);
 
         $updated_forum = Forum::find($before_forum->id);
@@ -168,9 +169,54 @@ class ForumApiTest extends TestCase
     }
 
     /**
+     * フォーラム更新時、imageがnullの場合画像が削除される
      * @test
      */
-    public function success_update_no_image(){
+    public function success_update_without_image()
+    {
+        $before_forum = factory(Forum::class)->create(['user_id' => $this->user->id]);
+        factory(Image::class)->create(['forum_id' => $before_forum->id]);
+        $expected_forum = factory(Forum::class)->make();
+
+        $response = $this->actingAs($this->user)
+            ->json('PATCH', route('forums.update', ['id' => $before_forum->id]), [
+                'title' => $expected_forum->title,
+            ]);
+
+        $updated_forum = Forum::find($before_forum->id);
+        $images = $updated_forum->images()->get();
+        $this->assertEmpty($images);
+
+        $response->assertStatus(204);
+    }
+
+    /**
+     * フォーラム更新時、更新前からimageがない場合もimageがnullの場合画像は存在しない
+     * @test
+     */
+    public function success_update_without_image_to_without_image()
+    {
+        $before_forum = factory(Forum::class)->create(['user_id' => $this->user->id]);
+        $expected_forum = factory(Forum::class)->make();
+
+        $response = $this->actingAs($this->user)
+            ->json('PATCH', route('forums.update', ['id' => $before_forum->id]), [
+                'title' => $expected_forum->title,
+            ]);
+
+        $updated_forum = Forum::find($before_forum->id);
+        $images = $updated_forum->images()->get();
+        $this->assertEmpty($images);
+
+        $response->assertStatus(204);
+    }
+
+    /**
+     * フォーラム作成時、添付画像が査定によりアップロード不可の場合、画像は保存されない
+     * @test
+     */
+    public function success_update_rekognition_get_level_BAN()
+    {
         $this->mock_image = Mockery::mock('App\SharedServices\ImageSharedService');
         $this->mock_image
             ->shouldReceive('rekognition_forum_image')
@@ -188,7 +234,7 @@ class ForumApiTest extends TestCase
         $response = $this->actingAs($this->user)
             ->json('PATCH', route('forums.update', ['id' => $before_forum->id]), [
                 'title' => $expected_forum->title,
-                'image'=> UploadedFile::fake()->create('photo.png'),
+                'image' => UploadedFile::fake()->create('photo.png'),
             ]);
 
         $updated_forum = Forum::find($before_forum->id);

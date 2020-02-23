@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Http\Requests\ResponseCreateRequest;
 use App\Http\Requests\ResponseUpdateRequest;
 use App\Models\Response\ResponseInterface;
+use App\SharedServices\ImageSharedService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -12,16 +13,19 @@ class ResponseService
 {
     private $response;
     private $comprehend;
+    private $image;
 
     /**
      * ResponseService constructor.
      * @param ResponseInterface $response_interface
      * @param Comprehend $comprehend
+     * @param ImageSharedService $image_shared_service
      */
-    public function __construct(ResponseInterface $response_interface, Comprehend $comprehend)
+    public function __construct(ResponseInterface $response_interface, Comprehend $comprehend, ImageSharedService $image_shared_service)
     {
         $this->response = $response_interface;
         $this->comprehend = $comprehend;
+        $this->image = $image_shared_service;
     }
 
     /**
@@ -72,8 +76,11 @@ class ResponseService
             $response = $this->response->create_response($request);
 
             // 画像がアップロードされている場合、DBに保存する
-            if ($request->session()->get('image_name')) {
-                $this->response->create_image($response->id);
+            if ($request->image) {
+                $request->merge(['id' => $response->id]);
+                $image_info = $this->image->rekognition_response_image($request);
+                $request->merge($image_info);
+                $this->response->create_image($request);
             }
 
             // リプライの場合通知を作成する
@@ -103,8 +110,12 @@ class ResponseService
 
             $response = $this->response->update_response($request);
 
-            if ($request->session()->get('image_name')) {
-                $this->response->update_image($response->id);
+            // 画像がアップロードされている場合、DBに保存する
+            if ($request->image) {
+                $request->merge(['id' => $response->id]);
+                $image_info = $this->image->rekognition_response_image($request);
+                $request->merge($image_info);
+                $this->response->update_image($request);
             }
 
             DB::commit();

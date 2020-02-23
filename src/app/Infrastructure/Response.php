@@ -10,10 +10,12 @@ use Vinkla\Hashids\Facades\Hashids;
 
 class Response extends Model
 {
-    protected $guarded = [
-        'id',
-        'created_at',
-        'updated_at',
+    protected $fillable = [
+        'user_id',
+        'forum_id',
+        'response_id',
+        'content',
+        'sentiment',
         'is_deleted'
     ];
 
